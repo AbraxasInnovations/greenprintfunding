@@ -1,0 +1,67 @@
+# Instructions for Updating .env File on Your Server
+
+1. Connect to your server:
+   ```
+   ssh root@138.197.119.176
+   ```
+
+2. Create a backup of your existing .env file:
+   ```
+   cp /opt/crypto-arb-bot/.env /opt/crypto-arb-bot/.env.backup
+   ```
+
+3. Edit the .env file:
+   ```
+   nano /opt/crypto-arb-bot/.env
+   ```
+
+4. Update the file with these changes:
+
+   a. Change DATABASE_URL to:
+      ```
+      DATABASE_URL=sqlite:///crypto_arb_bot.db
+      ```
+
+   b. Replace BOOMFI_PUBLIC_KEY and BOOMFI_WEBHOOK_SECRET with:
+      ```
+      BOOMFI_WEBHOOK_PUBLIC_KEY=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxL4r/DGLGjzwsOonTpUp
+      fsiEM8SlzDEalBfQaTa8uuSi7QDDGJCMiwyWXRHr/VgGPH9425PZmE6MODGVK0mJ
+      AW/JIgWMl7vGClSBs4jbWXtPMq59K0CmtSQUZqI3vQvhVw74HuMO+Po0oGCK3bnj
+      WSAeXJDYz2d16S1nWyj4r8RmFpW6HPaU/oDlUc8l6ylBXuVPTulRziEpXOomHC8Q
+      CseGooSOkXpynOkl4Ix/tG5a6VGjpM29XSE86wY7KYMBmm7SX2LKX9f/G8TTj1Xl
+      AsWkrWuJVLjOMGJ7JxadhjZPZSC2p12mOssmqdcCupsyRFpss/dJPIdnaQQbPcBY
+      KQIDAQAB
+      ```
+
+   c. Add:
+      ```
+      # Development mode - set to true to bypass signature verification in development
+      DEVELOPMENT_MODE=false
+      ```
+
+   d. Update the webhook URL:
+      ```
+      WEBHOOK_URL=http://138.197.119.176:5000/webhook/boomfi
+      ```
+
+5. Save the file:
+   - Press CTRL+X to exit
+   - Press Y to save changes
+   - Press ENTER to confirm
+
+6. Fix permissions:
+   ```
+   chown botuser:botuser /opt/crypto-arb-bot/.env
+   chmod 600 /opt/crypto-arb-bot/.env
+   ```
+
+7. Install the pycryptodome package:
+   ```
+   sudo -u botuser bash -c 'cd /opt/crypto-arb-bot && source venv/bin/activate && pip install pycryptodome'
+   ```
+
+8. Copy the updated payment.py file to your server:
+   ```
+   scp /Users/derekpethel/crypto-arb-bot/payment.py root@138.197.119.176:/opt/crypto-arb-bot/
+   chown botuser:botuser /opt/crypto-arb-bot/payment.py
+   ``` 

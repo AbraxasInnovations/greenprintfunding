@@ -1,0 +1,9 @@
+2025-03-21 18:40:12,583 - INFO - Loaded credentials from config file
+2025-03-21 18:40:12,583 - INFO - Custom max slippage set to 0.05
+2025-03-21 18:40:12,584 - INFO - Custom liquidation threshold set to 0.2
+2025-03-21 18:40:12,584 - INFO - Selected tokens: HPOS
+2025-03-21 18:40:12,584 - ERROR - Kraken request error: Incorrect padding
+2025-03-21 18:40:12,584 - INFO - Retrying in 1.89 seconds...
+2025-03-21 18:40:14,471 - ERROR - Kraken request error: Incorrect padding
+2025-03-21 18:40:14,471 - INFO - Retrying in 2.63 seconds...
+2025-03-21 18:40:17,102 - ERROR - Kraken request error: Incorrect padding
