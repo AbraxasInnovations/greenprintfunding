@@ -35,40 +35,24 @@ class ArbBotBase:
     """Base class for arbitrage bots with common functionality"""
     
     def __init__(self, config_path=None, user_id=None):
-        # Set up logging for this instance
-        self.logger = logging.getLogger(f'ArbBot_{user_id if user_id else "base"}')
-        self.logger.setLevel(logging.INFO)
+        # API URLs
+        self.hl_ws_url = "wss://api.hyperliquid.xyz/ws"
+        self.hl_api_url = "https://api.hyperliquid.xyz/info"
+        self.kraken_api_url = "https://api.kraken.com"
         
-        # Add a file handler for this bot instance
-        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, f'arb_bot_{user_id if user_id else "base"}.log')
-        
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-        
-        # Configuration
+        # User identification
+        self.user_id = user_id or "default"
         self.config_path = config_path
-        self.user_id = user_id
         
         # API credentials (populated by load_credentials)
         self.kraken_key = None
         self.kraken_secret = None
         self.hl_key = None
         self.hl_secret = None
-        self.hl_address = None  # Add Hyperliquid wallet address
         
-        # API clients
-        self.hl_exchange = None
+        # API clients (initialized in setup_apis)
         self.hl_info = None
-        
-        # API URLs
-        self.hl_ws_url = "wss://api.hyperliquid.xyz/ws"
-        self.hl_api_url = "https://api.hyperliquid.xyz/info"
-        self.kraken_api_url = "https://api.kraken.com"
+        self.hl_exchange = None
         
         # Rate limiting for Kraken API (intermediate tier)
         self.kraken_api_last_call = 0.0
@@ -93,6 +77,9 @@ class ArbBotBase:
         self.running = True
         self.positions = {}
         self.order_history = {}
+        
+        # Logger (initialized in setup_logging)
+        self.logger = None
         
         # Error handling
         self.consecutive_errors = 0
@@ -253,11 +240,9 @@ class ArbBotBase:
                 if 'hyperliquid' in config:
                     self.hl_key = config['hyperliquid']['api_key']
                     self.hl_secret = config['hyperliquid']['private_key']
-                    self.hl_address = config['hyperliquid'].get('address', None)
                     
                 self.logger.info("Loaded credentials from config file")
             else:
-                self.logger.warning("No config file provided, attempting to load from individual files")
                 # Fall back to individual files for backward compatibility
                 try:
                     from kraken_config import KRAKEN_API_KEY, KRAKEN_API_SECRET
@@ -377,21 +362,7 @@ class ArbBotBase:
             self.logger.info("Successfully initialized Hyperliquid SDK")
             
             # Verify balances are sufficient for trading
-            kraken_balance_ok = self.check_balances()
-            hl_balance_ok = self.check_hl_balance()
-            
-            if not kraken_balance_ok:
-                self.logger.warning("Kraken balance check failed")
-                
-            if not hl_balance_ok:
-                self.logger.warning("Hyperliquid balance check failed")
-                
-            # Both balances must be sufficient
-            if not (kraken_balance_ok and hl_balance_ok):
-                self.logger.error("Insufficient balance on one or both exchanges")
-                return False
-                
-            return True
+            self.check_balances()
             
         except ImportError as e:
             raise Exception(f"Failed to load API configurations: {e}")
@@ -2154,65 +2125,6 @@ class ArbBotBase:
                 self.ws.close()
                 
             self.logger.info("Bot shutdown complete")
-    
-    def check_hl_balance(self):
-        """Verify Hyperliquid account balance"""
-        if not self.hl_address:
-            self.logger.warning("Hyperliquid address not provided, skipping balance check")
-            return False
-            
-        try:
-            # Base URL for Hyperliquid API
-            info_url = "https://api.hyperliquid.xyz/info"
-            
-            # Get user state - shows account balance, open positions and margin info
-            address = self.hl_address.lower()
-            if not address.startswith('0x'):
-                address = '0x' + address
-                
-            user_payload = {"type": "userState", "user": address}
-            r = requests.post(info_url, json=user_payload)
-            
-            if r.status_code != 200:
-                # Try alternate endpoint
-                alt_payload = {"type": "clearinghouseState", "user": address}
-                r = requests.post(info_url, json=alt_payload)
-                
-                if r.status_code != 200:
-                    self.logger.error(f"Failed to get Hyperliquid account state: {r.status_code}")
-                    return False
-                    
-            account_data = r.json()
-            margin_summary = account_data.get('marginSummary', {})
-            
-            if not margin_summary:
-                self.logger.error("No margin data found in Hyperliquid account response")
-                return False
-                
-            # Extract balance information
-            account_value = float(margin_summary.get('accountValue', 0))
-            margin_balance = float(margin_summary.get('marginBalance', 0))
-            available_balance = float(margin_summary.get('availableBalance', 0))
-            total_margin_used = float(margin_summary.get('totalMarginUsed', 0))
-            
-            # Log balance information
-            self.logger.info(f"Hyperliquid account balance: ${account_value:.2f}")
-            self.logger.info(f"Available balance: ${available_balance:.2f}")
-            
-            # Store for percentage-based position sizing
-            self.hl_account_value = account_value
-            self.hl_available_balance = available_balance
-            
-            # Check if balance is sufficient - minimum $10 USD
-            if available_balance < 10:
-                self.logger.warning(f"Insufficient Hyperliquid balance: ${available_balance:.2f}")
-                return False
-                
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error checking Hyperliquid balance: {e}")
-            return False
 
 
 class Tier1Bot(ArbBotBase):

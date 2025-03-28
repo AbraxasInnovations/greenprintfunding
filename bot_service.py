@@ -51,7 +51,7 @@ class BotService:
                 logger.warning(f"Using fallback config directory: {self.config_dir}")
         
     def create_config(self, user_id: str, tier: int, kraken_key: str, 
-                    kraken_secret: str, hl_key: str, hl_secret: str, hl_address: str,
+                    kraken_secret: str, hl_key: str, hl_secret: str,
                     selected_tokens: List[str] = None) -> str:
         """
         Create configuration file for user
@@ -63,7 +63,6 @@ class BotService:
             kraken_secret: Kraken API secret
             hl_key: Hyperliquid API key
             hl_secret: Hyperliquid private key
-            hl_address: Hyperliquid wallet address
             selected_tokens: List of token symbols to trade
             
         Returns:
@@ -81,8 +80,7 @@ class BotService:
             
             config['hyperliquid'] = {
                 'api_key': hl_key,
-                'private_key': hl_secret,
-                'address': hl_address
+                'private_key': hl_secret
             }
             
             # Add service configuration
@@ -116,7 +114,7 @@ class BotService:
             raise
             
     def start_bot(self, user_id: str, tier: int, kraken_key: str, 
-                 kraken_secret: str, hl_key: str, hl_secret: str, hl_address: str,
+                 kraken_secret: str, hl_key: str, hl_secret: str,
                  selected_tokens: List[str] = None) -> bool:
         """
         Start a bot for the user with the specified tier and tokens
@@ -128,7 +126,6 @@ class BotService:
             kraken_secret: Kraken API secret
             hl_key: Hyperliquid API key
             hl_secret: Hyperliquid private key
-            hl_address: Hyperliquid wallet address
             selected_tokens: List of token symbols to trade
             
         Returns:
@@ -142,48 +139,64 @@ class BotService:
                 
             # Create config file
             config_path = self.create_config(
-                user_id, tier, kraken_key, kraken_secret, hl_key, hl_secret, hl_address,
+                user_id, tier, kraken_key, kraken_secret, hl_key, hl_secret,
                 selected_tokens=selected_tokens
             )
             
-            # Check if we already have a bot for this user
-            if user_id in self.bots:
-                logger.warning(f"Bot already running for user {user_id}, stopping existing bot")
-                self.stop_bot(user_id)
+            # Stop existing bot if running
+            self.stop_bot(user_id)
             
-            # Choose bot class based on tier
-            logger.info(f"Creating tier {tier} bot for user {user_id}")
-            
-            bot_class = None
-            if tier == 1:
-                bot_class = Tier1Bot
-            elif tier == 2:
-                bot_class = Tier2Bot
-            elif tier == 3:
-                bot_class = Tier3Bot
-            else:
-                logger.error(f"Invalid tier {tier} for user {user_id}")
-                return False
+            # Create appropriate bot based on tier
+            bot = None
+            try:
+                if tier == 1:
+                    bot = Tier1Bot(config_path, user_id)
+                elif tier == 2:
+                    bot = Tier2Bot(config_path, user_id)
+                elif tier == 3:
+                    bot = Tier3Bot(config_path, user_id)
+                else:
+                    logger.error(f"Invalid tier: {tier}")
+                    return False
+            except AttributeError as e:
+                if "'Tier1Bot' object has no attribute 'logger'" in str(e):
+                    logger.error(f"Bot initialization error (missing logger): {e}")
+                    # Add a fallback logger since the bot couldn't create one
+                    if tier == 1:
+                        bot = Tier1Bot(config_path, user_id)
+                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
+                        bot.logger.setLevel(logging.INFO)
+                    elif tier == 2:
+                        bot = Tier2Bot(config_path, user_id)
+                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
+                        bot.logger.setLevel(logging.INFO)
+                    elif tier == 3:
+                        bot = Tier3Bot(config_path, user_id)
+                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
+                        bot.logger.setLevel(logging.INFO)
+                else:
+                    raise
                 
-            # Create bot instance
-            bot = bot_class(config_path=config_path, user_id=user_id)
-            bot.selected_tokens = selected_tokens
+            # Start bot in separate thread
+            bot_thread = threading.Thread(target=bot.run)
+            bot_thread.daemon = True
+            bot_thread.start()
             
-            # Start the bot
-            logger.info(f"Starting bot for user {user_id}")
-            success = bot.start()
+            # Store bot instance
+            self.bots[user_id] = {
+                'bot': bot,
+                'thread': bot_thread,
+                'tier': tier,
+                'config_path': config_path,
+                'start_time': datetime.now(),
+                'selected_tokens': selected_tokens
+            }
             
-            if success:
-                # Store the bot instance
-                self.bots[user_id] = bot
-                logger.info(f"Bot started successfully for user {user_id}")
-                return True
-            else:
-                logger.error(f"Failed to start bot for user {user_id}")
-                return False
+            logger.info(f"Started tier {tier} bot for user {user_id} with tokens: {', '.join(selected_tokens)}")
+            return True
             
         except Exception as e:
-            logger.error(f"Error starting bot for user {user_id}: {str(e)}")
+            logger.error(f"Failed to start bot for user {user_id}: {str(e)}")
             return False
             
     def stop_bot(self, user_id: str) -> bool:
@@ -344,7 +357,6 @@ class BotService:
                 kraken_secret=kraken_secret,
                 hl_key=hl_key,
                 hl_secret=hl_secret,
-                hl_address=config['hyperliquid']['address'],
                 selected_tokens=tokens
             )
             

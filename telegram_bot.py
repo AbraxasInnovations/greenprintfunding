@@ -66,7 +66,6 @@ logger = logging.getLogger(__name__)
     AWAITING_KRAKEN_SECRET,
     AWAITING_HL_KEY,
     AWAITING_HL_SECRET,
-    AWAITING_HL_ADDRESS,  # New state for Hyperliquid address
     AWAITING_PAYMENT,
     CONFIRM_START,
     CONFIRM_STOP,
@@ -77,7 +76,7 @@ logger = logging.getLogger(__name__)
     CONFIRMING_STRATEGIES,
     CHOOSING_PAYMENT,
     PAYMENT_EMAIL_ENTRY
-) = range(19)  # Update range to include new state
+) = range(18)
 
 class AbraxasGreenprintBot:
     """
@@ -211,8 +210,7 @@ class AbraxasGreenprintBot:
                 AWAITING_KRAKEN_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_kraken_key)],
                 AWAITING_KRAKEN_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_kraken_secret)],
                 AWAITING_HL_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_key)],
-                AWAITING_HL_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_secret)],
-                AWAITING_HL_ADDRESS: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_address)]
+                AWAITING_HL_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_secret)]
             },
             fallbacks=[CommandHandler("cancel", self.cancel_conversation)]
         )
@@ -1241,52 +1239,18 @@ class AbraxasGreenprintBot:
             # Delete the message containing the API secret for security
             await update.message.delete()
             
-            # Store the API secret temporarily
+            # Store the API secret securely
             context.user_data['hl_secret'] = update.message.text
-            
-            # Ask for Hyperliquid wallet address
-            await update.message.reply_text(
-                "Now, please provide your Hyperliquid wallet address (starting with 0x).\n\n"
-                "This is needed to check your account balance and enable percentage-based position sizing.",
-                reply_markup=ReplyKeyboardRemove()
-            )
-            
-            logger.info(f"Transitioning to AWAITING_HL_ADDRESS state for user {update.effective_user.id}")
-            return AWAITING_HL_ADDRESS
-            
-        except Exception as e:
-            logger.error(f"Error in process_hl_secret for user {update.effective_user.id}: {str(e)}")
-            await update.message.reply_text(
-                "❌ There was an error processing your API keys. Please try again with /setkeys"
-            )
-            return ConversationHandler.END
-        
-    async def process_hl_address(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Process Hyperliquid address input"""
-        try:
-            logger.info(f"Processing Hyperliquid address from user {update.effective_user.id}")
-            user_id = update.effective_user.id
-            
-            # Validate the address format
-            address = update.message.text.strip().lower()
-            if not address.startswith('0x') or len(address) != 42:
-                await update.message.reply_text(
-                    "⚠️ Invalid Ethereum address format. Please provide a valid Hyperliquid wallet address starting with 0x.",
-                    reply_markup=ReplyKeyboardRemove()
-                )
-                return AWAITING_HL_ADDRESS
-                
-            # Store the address temporarily
-            context.user_data['hl_address'] = address
             
             # Get all API keys from user data
             kraken_key = context.user_data.get('kraken_key')
             kraken_secret = context.user_data.get('kraken_secret')
             hl_key = context.user_data.get('hl_key')
             hl_secret = context.user_data.get('hl_secret')
-            hl_address = context.user_data.get('hl_address')
             
-            logger.info(f"All API keys and address collected for user {user_id}, proceeding to store them securely")
+            user_id = update.effective_user.id
+            
+            logger.info(f"All API keys collected for user {user_id}, proceeding to store them securely")
             
             # Encrypt and store Kraken API keys
             kraken_key_success = False
@@ -1329,16 +1293,6 @@ class AbraxasGreenprintBot:
                 except Exception as e:
                     logger.error(f"Error encrypting Hyperliquid API keys for user {user_id}: {str(e)}")
                     
-            # Store Hyperliquid address
-            address_success = False
-            if hl_address:
-                try:
-                    logger.info(f"Storing Hyperliquid address for user {user_id}")
-                    address_success = self.db.update_user_hl_address(user_id, hl_address)
-                    logger.info(f"Hyperliquid address storage {'successful' if address_success else 'failed'} for user {user_id}")
-                except Exception as e:
-                    logger.error(f"Error storing Hyperliquid address for user {user_id}: {str(e)}")
-                    
             # Clear API keys from context for security
             logger.info(f"Clearing sensitive data from context for user {user_id}")
             if 'kraken_key' in context.user_data:
@@ -1349,36 +1303,28 @@ class AbraxasGreenprintBot:
                 del context.user_data['hl_key']
             if 'hl_secret' in context.user_data:
                 del context.user_data['hl_secret']
-            if 'hl_address' in context.user_data:
-                del context.user_data['hl_address']
             if 'setting_api_keys' in context.user_data:  
                 del context.user_data['setting_api_keys']
                 
             # Show confirmation message
-            if kraken_key_success and hl_key_success and address_success:
-                logger.info(f"All API keys and address successfully stored for user {user_id}")
+            if kraken_key_success and hl_key_success:
+                logger.info(f"All API keys successfully stored for user {user_id}")
                 msg = await update.message.reply_text(
-                    "🔐 All API keys and wallet address have been securely stored.\n\n"
+                    "🔐 All API keys have been securely stored.\n\n"
                     "You can now use /tokens to select which tokens to trade,\n"
                     "and /start_bot to begin trading."
                 )
-            elif not address_success:
-                logger.warning(f"Failed to store Hyperliquid address for user {user_id}")
-                msg = await update.message.reply_text(
-                    "🔐 API keys have been securely stored, but there was an issue with your Hyperliquid address.\n\n"
-                    "Please try setting your keys again with /setkeys."
-                )
-            elif kraken_key_success and not hl_key_success:
+            elif kraken_key_success:
                 logger.warning(f"Only Kraken API keys were stored successfully for user {user_id}")
                 msg = await update.message.reply_text(
-                    "🔐 Kraken API keys and Hyperliquid address have been securely stored.\n\n"
+                    "🔐 Kraken API keys have been securely stored.\n\n"
                     "However, there was an issue with your Hyperliquid API keys. "
                     "Please try setting them again with /setkeys."
                 )
-            elif hl_key_success and not kraken_key_success:
+            elif hl_key_success:
                 logger.warning(f"Only Hyperliquid API keys were stored successfully for user {user_id}")
                 msg = await update.message.reply_text(
-                    "🔐 Hyperliquid API keys and address have been securely stored.\n\n"
+                    "🔐 Hyperliquid API keys have been securely stored.\n\n"
                     "However, there was an issue with your Kraken API keys. "
                     "Please try setting them again with /setkeys."
                 )
@@ -1390,14 +1336,13 @@ class AbraxasGreenprintBot:
                 
             logger.info(f"API key setup completed for user {user_id}")
             return ConversationHandler.END
-            
         except Exception as e:
-            logger.error(f"Error in process_hl_address for user {update.effective_user.id}: {str(e)}")
+            logger.error(f"Error in process_hl_secret for user {update.effective_user.id}: {str(e)}")
             await update.message.reply_text(
-                "❌ There was an error processing your Hyperliquid address. Please try again with /setkeys"
+                "❌ There was an error processing your API keys. Please try again with /setkeys"
             )
             return ConversationHandler.END
-    
+        
     async def cmd_start_bot(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle the /start_bot command"""
         user_id = update.effective_user.id
@@ -1479,15 +1424,7 @@ class AbraxasGreenprintBot:
             
             if not kraken_key or not hl_key:
                 await query.edit_message_text(
-                    "❌ Failed to start bot: API keys not found. Please set them with /setkeys"
-                )
-                return ConversationHandler.END
-                
-            # Get Hyperliquid address
-            hl_address = self.db.get_user_hl_address(user_id)
-            if not hl_address:
-                await query.edit_message_text(
-                    "❌ Hyperliquid wallet address not found. Please set up your API keys again with /setkeys"
+                    "Failed to start bot: API keys not found. Please set them with /setkeys"
                 )
                 return ConversationHandler.END
                 
@@ -1496,7 +1433,7 @@ class AbraxasGreenprintBot:
             
             if not selected_tokens:
                 await query.edit_message_text(
-                    "❌ No tokens selected for trading. Please use /tokens to select tokens first."
+                    "No tokens selected for trading. Please use /tokens to select tokens first."
                 )
                 return ConversationHandler.END
                 
@@ -1507,12 +1444,6 @@ class AbraxasGreenprintBot:
             hl_api_secret = self.security.decrypt(hl_key.encrypted_secret, hl_key.secret_iv)
             
             try:
-                # Show loading message
-                await query.edit_message_text(
-                    "🔄 Starting bot and checking balances on Kraken and Hyperliquid...\n\n"
-                    "This may take a moment."
-                )
-                
                 # Start the trading bot with selected tokens
                 success = self.bot_service.start_bot(
                     user_id=str(user_id),
@@ -1521,8 +1452,7 @@ class AbraxasGreenprintBot:
                     kraken_secret=kraken_api_secret,
                     hl_key=hl_api_key,
                     hl_secret=hl_api_secret,
-                    hl_address=hl_address,
-                    selected_tokens=selected_tokens
+                    selected_tokens=selected_tokens  # Pass the selected tokens
                 )
                 
                 if success:
@@ -1546,12 +1476,7 @@ class AbraxasGreenprintBot:
                     )
                 else:
                     await query.edit_message_text(
-                        "❌ Failed to start the bot.\n\n"
-                        "Common issues:\n"
-                        "• Insufficient balance on Kraken or Hyperliquid\n"
-                        "• Invalid API keys or wallet address\n"
-                        "• Exchange connection issues\n\n"
-                        "Please check your balances and try again."
+                        "❌ Failed to start the bot. Please check your API keys and try again."
                     )
             except Exception as e:
                 logger.error(f"Error starting bot for user {user_id}: {str(e)}")
