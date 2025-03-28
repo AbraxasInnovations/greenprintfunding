@@ -78,6 +78,7 @@ def notify_user_via_telegram(user_id, tier, payment_id=None):
         keyboard = {
             "inline_keyboard": [
                 [{"text": "🪙 Step 1: Select Tokens", "callback_data": "guide_tokens"}],
+                [{"text": "📊 Step 2: Set Strategies", "callback_data": "guide_strategies"}],
                 [{"text": "🔑 Step 3: Set API Keys", "callback_data": "guide_keys"}]
             ]
         }

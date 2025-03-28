@@ -35,14 +35,76 @@ class ArbBotBase:
     """Base class for arbitrage bots with common functionality"""
     
     def __init__(self, config_path=None, user_id=None):
+        # Set up logging for this instance
+        self.logger = logging.getLogger(f'ArbBot_{user_id if user_id else "base"}')
+        self.logger.setLevel(logging.INFO)
+        
+        # Add a file handler for this bot instance
+        log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'logs')
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, f'arb_bot_{user_id if user_id else "base"}.log')
+        
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
+        
+        # Configuration
+        self.config_path = config_path
+        self.user_id = user_id
+        
+        # API credentials (populated by load_credentials)
+        self.kraken_key = None
+        self.kraken_secret = None
+        self.hl_key = None
+        self.hl_secret = None
+        self.hl_address = None  # Add Hyperliquid wallet address
+        
+        # API clients
+        self.hl_exchange = None
+        self.hl_info = None
+        
         # API URLs
         self.hl_ws_url = "wss://api.hyperliquid.xyz/ws"
         self.hl_api_url = "https://api.hyperliquid.xyz/info"
         self.kraken_api_url = "https://api.kraken.com"
         
-        # User identification
-        self.user_id = user_id or "default"
-        self.config_path = config_path
+        # Rate limiting for Kraken API (intermediate tier)
+        self.kraken_api_last_call = 0.0
+        self.kraken_api_min_interval = 0.35  # ~3 calls per second max (35 / 46 limit with buffer)
+        self.kraken_order_check_interval = 3.0  # Check order status every 3 seconds
+        self.kraken_call_times = []
+        self.kraken_rate_limit_window = 60  # seconds (1-minute window per chart)
+        self.kraken_max_calls_per_window = 46  # Total API calls limit for Intermediate tier
+        
+        # Safety checks and monitoring intervals
+        self.last_margin_check_time = 0
+        self.margin_check_interval = 60  # seconds between margin checks
+        self.min_margin_ratio = 0.15  # 15% margin ratio threshold for liquidation protection
+        self.max_price_deviation = 0.05  # 5% max price deviation for flash crash detection
+        
+        # WebSocket related attributes
+        self.ws = None
+        self.ws_message_queue = queue.Queue()
+        self.ws_reconnect_count = 0
+        
+        # Trade management
+        self.running = True
+        self.positions = {}
+        self.order_history = {}
+        
+        # Error handling
+        self.consecutive_errors = 0
+        self.error_cooldown = 5  # seconds
+        self.extended_cooldown = 30  # seconds
+        self.max_consecutive_errors = 5
+        
+        # Performance monitoring
+        self.volatility_window = 200  # Number of price data points to store
+        self.order_book_cache = {}
+        self.historical_percentiles = {}
+        self.flash_crash_cooldowns = {}
         
         # Common configuration
         self.exit_time_threshold = 15  # Minutes before hour end to check for exit
@@ -52,6 +114,9 @@ class ArbBotBase:
         self.max_ws_reconnects = 10  # Maximum WebSocket reconnection attempts
         self.slippage_buffer = 0.001  # 0.1% slippage buffer for limit orders
         self.min_order_book_depth = 1.5  # Minimum order book depth as multiplier of position size
+        
+        # Selected tokens list (populated from database or config)
+        self.selected_tokens = []
         
         # Custom strategy settings
         self.entry_strategy = "default"  # Default is 60th percentile
@@ -77,11 +142,20 @@ class ArbBotBase:
             "abraxas": None  # Same as default
         }
         
-        # Initialize
-        self.initialize()
+        # Initialize trading assets dict (will be populated by child classes)
+        self.assets = {}
+        self.supported_assets = []
+        
+        # Data structures for historical data
+        self.funding_history = {}
+        self.last_funding_rates = {}
+        self.last_percentiles = {}
     
     def initialize(self):
         """Initialize the bot after configuration"""
+        # Setup logging first to ensure logger is available for all subsequent methods
+        self.setup_logging()
+        
         self.load_credentials()
         self.load_custom_settings()
         self.setup_apis()
@@ -95,11 +169,16 @@ class ArbBotBase:
         
         # Start message processing thread
         self.start_message_processor()
-        
+    
     def filter_assets_by_selected_tokens(self):
         """Filter assets dictionary to only include selected tokens"""
         self.logger.info(f"Filtering assets based on selected tokens: {self.selected_tokens if hasattr(self, 'selected_tokens') else 'None'}")
         
+        # Ensure assets dict is initialized
+        if not hasattr(self, 'assets') or not self.assets:
+            self.logger.warning("Assets dictionary not initialized, cannot filter assets")
+            return {}
+            
         if hasattr(self, 'selected_tokens') and self.selected_tokens:
             # Create a new dictionary with only selected tokens
             filtered_assets = {}
@@ -174,9 +253,11 @@ class ArbBotBase:
                 if 'hyperliquid' in config:
                     self.hl_key = config['hyperliquid']['api_key']
                     self.hl_secret = config['hyperliquid']['private_key']
+                    self.hl_address = config['hyperliquid'].get('address', None)
                     
                 self.logger.info("Loaded credentials from config file")
             else:
+                self.logger.warning("No config file provided, attempting to load from individual files")
                 # Fall back to individual files for backward compatibility
                 try:
                     from kraken_config import KRAKEN_API_KEY, KRAKEN_API_SECRET
@@ -296,7 +377,21 @@ class ArbBotBase:
             self.logger.info("Successfully initialized Hyperliquid SDK")
             
             # Verify balances are sufficient for trading
-            self.check_balances()
+            kraken_balance_ok = self.check_balances()
+            hl_balance_ok = self.check_hl_balance()
+            
+            if not kraken_balance_ok:
+                self.logger.warning("Kraken balance check failed")
+                
+            if not hl_balance_ok:
+                self.logger.warning("Hyperliquid balance check failed")
+                
+            # Both balances must be sufficient
+            if not (kraken_balance_ok and hl_balance_ok):
+                self.logger.error("Insufficient balance on one or both exchanges")
+                return False
+                
+            return True
             
         except ImportError as e:
             raise Exception(f"Failed to load API configurations: {e}")
@@ -518,12 +613,22 @@ class ArbBotBase:
                 usd_balance = float(kraken_balance['result'].get('ZUSD', 0))
                 self.logger.info(f"Kraken USD balance: ${usd_balance:.2f}")
                 
-                # Check if balance is sufficient for all assets combined
-                total_required = sum(asset["position_size"] for asset in self.assets.values())
+                # If assets are not yet initialized or empty, we can't check position sizes
+                if not hasattr(self, 'assets') or not self.assets:
+                    self.logger.info("Assets not yet initialized, skipping position size check")
+                    return True
                 
-                if usd_balance < total_required:
-                    self.logger.warning(f"Insufficient USD balance (${usd_balance:.2f}) for total position size (${total_required:.2f})")
-                    return False
+                # Check if balance is sufficient for all assets combined
+                try:
+                    total_required = sum(asset_data.get("position_size", 0) for asset_data in self.assets.values())
+                    
+                    if usd_balance < total_required:
+                        self.logger.warning(f"Insufficient USD balance (${usd_balance:.2f}) for total position size (${total_required:.2f})")
+                        return False
+                except (AttributeError, TypeError) as e:
+                    self.logger.warning(f"Could not calculate required balance: {e}")
+                    # Continue without balance check if there's an issue with assets structure
+                    return True
                     
                 return True
                 
@@ -1677,9 +1782,21 @@ class ArbBotBase:
         """
         asset_data = self.assets[asset]
         start_time = time.time()
+        last_check_time = 0
+        
+        # Use a slightly faster check interval for Hyperliquid since it doesn't have the same rate limits
+        hl_check_interval = 1.5  # 1.5 seconds between checks
         
         while time.time() - start_time < self.order_timeout:
             try:
+                # Only check at the specified interval to avoid excessive API calls
+                current_time = time.time()
+                if current_time - last_check_time < hl_check_interval:
+                    time.sleep(0.5)  # Small sleep to prevent tight loop
+                    continue
+                    
+                last_check_time = current_time
+                
                 if not asset_data["current_hl_order_id"]:
                     return False, 0.0
                     
@@ -1687,7 +1804,7 @@ class ArbBotBase:
                 order_status = self.hl_exchange.get_order_status(asset_data["current_hl_order_id"])
                 
                 if not order_status:
-                    time.sleep(1)
+                    time.sleep(hl_check_interval)
                     continue
                     
                 status = order_status.get('status')
@@ -1704,11 +1821,11 @@ class ArbBotBase:
                 if status == 'open' and fill_percent > 0:
                     self.logger.info(f"{asset} Hyperliquid order {fill_percent:.1f}% filled ({filled}/{size})")
                     
-                time.sleep(1)
+                time.sleep(hl_check_interval)
                 
             except Exception as e:
                 self.logger.error(f"Error checking Hyperliquid order status for {asset}: {e}")
-                time.sleep(1)
+                time.sleep(hl_check_interval)
                 
         self.logger.warning(f"{asset} Hyperliquid order timeout after {self.order_timeout} seconds")
         
@@ -2037,6 +2154,65 @@ class ArbBotBase:
                 self.ws.close()
                 
             self.logger.info("Bot shutdown complete")
+    
+    def check_hl_balance(self):
+        """Verify Hyperliquid account balance"""
+        if not self.hl_address:
+            self.logger.warning("Hyperliquid address not provided, skipping balance check")
+            return False
+            
+        try:
+            # Base URL for Hyperliquid API
+            info_url = "https://api.hyperliquid.xyz/info"
+            
+            # Get user state - shows account balance, open positions and margin info
+            address = self.hl_address.lower()
+            if not address.startswith('0x'):
+                address = '0x' + address
+                
+            user_payload = {"type": "userState", "user": address}
+            r = requests.post(info_url, json=user_payload)
+            
+            if r.status_code != 200:
+                # Try alternate endpoint
+                alt_payload = {"type": "clearinghouseState", "user": address}
+                r = requests.post(info_url, json=alt_payload)
+                
+                if r.status_code != 200:
+                    self.logger.error(f"Failed to get Hyperliquid account state: {r.status_code}")
+                    return False
+                    
+            account_data = r.json()
+            margin_summary = account_data.get('marginSummary', {})
+            
+            if not margin_summary:
+                self.logger.error("No margin data found in Hyperliquid account response")
+                return False
+                
+            # Extract balance information
+            account_value = float(margin_summary.get('accountValue', 0))
+            margin_balance = float(margin_summary.get('marginBalance', 0))
+            available_balance = float(margin_summary.get('availableBalance', 0))
+            total_margin_used = float(margin_summary.get('totalMarginUsed', 0))
+            
+            # Log balance information
+            self.logger.info(f"Hyperliquid account balance: ${account_value:.2f}")
+            self.logger.info(f"Available balance: ${available_balance:.2f}")
+            
+            # Store for percentage-based position sizing
+            self.hl_account_value = account_value
+            self.hl_available_balance = available_balance
+            
+            # Check if balance is sufficient - minimum $10 USD
+            if available_balance < 10:
+                self.logger.warning(f"Insufficient Hyperliquid balance: ${available_balance:.2f}")
+                return False
+                
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error checking Hyperliquid balance: {e}")
+            return False
 
 
 class Tier1Bot(ArbBotBase):

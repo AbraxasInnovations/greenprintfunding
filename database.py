@@ -35,6 +35,7 @@ class User(Base):
     telegram_id = Column(Integer, unique=True, nullable=False)
     username = Column(String, nullable=True)
     email = Column(String, nullable=True)  # Added email field
+    hl_address = Column(String, nullable=True)  # Add Hyperliquid wallet address
     subscription_tier = Column(Integer, nullable=True)
     subscription_expiry = Column(DateTime, nullable=True)
     selected_tokens = Column(String, nullable=True)  # Comma-separated list of selected tokens
@@ -416,3 +417,23 @@ class Database:
         with self.Session() as session:
             user = session.query(User).filter_by(email=email).first()
             return user.telegram_id if user else None
+
+    def update_user_hl_address(self, telegram_id: int, hl_address: str) -> bool:
+        """Update user's Hyperliquid address"""
+        with self.Session() as session:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                return False
+            
+            user.hl_address = hl_address
+            session.commit()
+            return True
+            
+    def get_user_hl_address(self, telegram_id: int) -> Optional[str]:
+        """Get user's Hyperliquid address"""
+        with self.Session() as session:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                return None
+            
+            return user.hl_address
