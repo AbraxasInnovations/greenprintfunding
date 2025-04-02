@@ -1,0 +1,3282 @@
+#!/usr/bin/env python3
+"""
+Crypto Arbitrage Bot Module
+--------------------------
+Modified version of the original arbitrage bot with security improvements
+"""
+
+import requests
+import time
+import json
+import base64
+import hashlib
+import hmac
+import urllib.parse
+import websocket
+import threading
+import pandas as pd
+import numpy as np
+import random
+from datetime import datetime, timedelta
+import pytz
+from typing import Dict, Optional, Tuple, List, Union, Any
+import logging
+from logging.handlers import RotatingFileHandler
+from collections import deque
+import queue
+import os
+import configparser
+from hyperliquid.info import Info
+from hyperliquid.utils import constants
+from hyperliquid.exchange import Exchange
+from eth_account import Account
+import string
+import traceback
+import signal
+import sys
+from concurrent.futures import ThreadPoolExecutor
+
+class ArbBotBase:
+    """Base class for arbitrage bots with common functionality"""
+    
+    def __init__(self, config_path=None, user_id=None):
+        """Initialize the arbitrage bot"""
+        self.config_path = config_path
+        self.user_id = user_id or "default"
+        self.est_tz = pytz.timezone('US/Eastern')
+        
+        # Initialize API clients
+        self.kraken = None
+        self.hl_exchange = None
+        self.hl_info = None
+        self.hl_wallet = None
+        
+        # Initialize API URLs
+        self.hl_ws_url = "wss://api.hyperliquid.xyz/ws"
+        self.hl_api_url = "https://api.hyperliquid.xyz/info"
+        self.kraken_api_url = "https://api.kraken.com"
+        
+        # API credentials (populated by load_credentials)
+        self.kraken_key = None
+        self.kraken_secret = None
+        self.hl_key = None
+        self.hl_secret = None
+        
+        # Initialize tracking variables
+        self.active_positions = set()
+        self.last_prediction_check_time = time.time()
+        self.flash_crash_cooldown = 300  # 5 minutes cooldown
+        self.max_volatility = 0.03  # 3% max volatility
+        self.last_funding_rates = {}
+        self.last_percentiles = {}
+        self.historical_percentiles = {}
+        self.kraken_call_times = []  # Track API call times for rate limiting
+        self.selected_tokens = []
+        
+        # Rate limiting for Kraken API (intermediate tier)
+        self.kraken_api_last_call = 0.0
+        self.kraken_api_min_interval = 0.35  # ~3 calls per second max (35 / 46 limit with buffer)
+        self.kraken_order_check_interval = 3.0  # Check order status every 3 seconds
+        self.kraken_rate_limit_window = 60  # seconds (1-minute window per chart)
+        self.kraken_max_calls_per_window = 46  # Total API calls limit for Intermediate tier
+        
+        # Initialize WebSocket
+        self.ws = None
+        self.ws_thread = None
+        self.ws_running = False
+        self.ws_message_queue = queue.Queue()
+        self.ws_reconnect_count = 0
+        
+        # Initialize trading parameters
+        self.entry_strategy = "default"  # Default is 60th percentile
+        self.entry_percentiles = {
+            "default": 60,
+            "conservative": 75,
+            "aggressive": 50
+        }
+        self.exit_percentiles = {
+            "default": 50,
+            "conservative": 40,
+            "aggressive": 60
+        }
+        
+        # Safety checks and monitoring intervals
+        self.last_margin_check_time = 0
+        self.margin_check_interval = 60  # seconds between margin checks
+        self.min_margin_ratio = 0.15  # 15% margin ratio threshold for liquidation protection
+        self.max_price_deviation = 0.05  # 5% max price deviation for flash crash detection
+        
+        # Trade management
+        self.running = True
+        self.positions = {}
+        self.order_history = {}
+        
+        # Error handling
+        self.consecutive_errors = 0
+        self.error_cooldown = 5  # seconds
+        self.extended_cooldown = 30  # seconds
+        self.max_consecutive_errors = 5
+        
+        # Performance monitoring
+        self.volatility_window = 200  # Number of price data points to store
+        self.order_book_cache = {}
+        self.flash_crash_cooldowns = {}
+        
+        # Common configuration
+        self.exit_time_threshold = 15  # Minutes before hour end to check for exit
+        self.order_timeout = 60  # Seconds to wait for order fill
+        self.max_retries = 3  # Maximum number of order placement retries
+        self.rate_check_interval = 5  # Update last paid rate every 5 seconds
+        self.max_ws_reconnects = 10  # Maximum WebSocket reconnection attempts
+        self.slippage_buffer = 0.001  # 0.1% slippage buffer for limit orders
+        self.min_order_book_depth = 1.5  # Minimum order book depth as multiplier of position size
+        
+        # Initialize trading assets dict (will be populated by child classes)
+        self.assets = {}
+        self.supported_assets = []
+        
+        # Data structures for historical data
+        self.funding_history = {}
+        
+        # Load configuration and initialize
+        self.initialize()
+    
+    def initialize(self):
+        """Initialize the bot with API connections and data structures"""
+        try:
+            # Set up logging first
+            self.setup_logging()
+            
+            # Load config properly as ConfigParser
+            if self.config_path and os.path.exists(self.config_path):
+                self.config = configparser.ConfigParser()
+                self.config.read(self.config_path)
+            else:
+                # Create an empty ConfigParser object instead of dict for consistency
+                self.config = configparser.ConfigParser()
+            
+            # Add Eastern Time Zone for timestamps
+            self.est_tz = pytz.timezone('US/Eastern')
+            
+            # Initialize data structures
+            self.last_funding_rates = {}
+            self.last_percentiles = {}
+            self.historical_percentiles = {}
+            self.funding_history = {}
+            self.flash_crash_cooldowns = {}
+            
+            # Load credentials from config
+            self.load_credentials()
+            
+            # Load custom settings from config
+            self.load_custom_settings()
+            
+            # Set up API connections
+            self.setup_apis()
+            
+            # Check available balances and print
+            self.check_balances()
+            
+            # Initialize historical_prices array for each asset
+            for asset in self.assets:
+                if 'historical_prices' not in self.assets[asset]:
+                    self.assets[asset]['historical_prices'] = deque(maxlen=self.volatility_window)
+            
+            # Load wallet address from config - always use ConfigParser methods
+            try:
+                self.wallet_address = self.config.get('hyperliquid', 'wallet_address')
+            except (configparser.NoSectionError, configparser.NoOptionError):
+                self.wallet_address = ''
+                
+            self.logger.info(f"Loaded Hyperliquid wallet address from config: {self.wallet_address}")
+            
+            # Apply selected tokens filter if available
+            if hasattr(self, 'selected_tokens') and self.selected_tokens:
+                self.logger.info(f"Loaded selected tokens from config: {self.selected_tokens}")
+                self.filter_assets_by_selected_tokens()
+                
+            # Calculate historical percentiles for all assets (or selected ones)
+            self.logger.info("Calculating historical percentiles for selected tokens: " + 
+                          (", ".join(self.selected_tokens) if hasattr(self, 'selected_tokens') and self.selected_tokens else "all assets"))
+            
+            for asset in self.assets:
+                # Skip assets not selected
+                if hasattr(self, 'selected_tokens') and self.selected_tokens and asset not in self.selected_tokens:
+                    continue
+                    
+                self.logger.info(f"Fetching real historical funding data for {asset}...")
+                success = self.calculate_historical_percentile(asset)
+                
+                if success:
+                    if asset in self.historical_percentiles:
+                        # Verify the 60th percentile exists and is a string key
+                        if '60' in self.historical_percentiles[asset]:
+                            entry_threshold = self.entry_percentiles.get(self.entry_strategy, 60)
+                            exit_threshold = self.exit_percentiles.get(self.exit_strategy, 50)
+                            self.logger.info(f"Entry threshold ({entry_threshold}th percentile): {self.historical_percentiles[asset][str(entry_threshold)]:.4f}%")
+                            self.logger.info(f"Exit threshold ({exit_threshold}th percentile): {self.historical_percentiles[asset][str(exit_threshold)]:.4f}%")
+                        else:
+                            self.logger.warning(f"Historical percentiles for {asset} missing 60th percentile")
+                else:
+                    self.logger.warning(f"Failed to calculate historical percentiles for {asset}")
+            
+            # Connect to WebSocket for real-time data
+            self.connect_websocket()
+            
+            # Start message processor thread
+            self.start_message_processor()
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error initializing bot: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+    
+    def filter_assets_by_selected_tokens(self):
+        """Filter assets dictionary to only include selected tokens"""
+        # Make sure we have selected tokens
+        if not hasattr(self, 'selected_tokens') or not self.selected_tokens:
+            # Try to load from config file
+            if self.config_path and os.path.exists(self.config_path):
+                config = configparser.ConfigParser()
+                config.read(self.config_path)
+                
+                if 'tokens' in config and 'selected' in config['tokens']:
+                    tokens_str = config['tokens']['selected']
+                    self.selected_tokens = [token.strip() for token in tokens_str.split(',') if token.strip()]
+                    self.logger.info(f"Loaded selected tokens from config: {self.selected_tokens}")
+        
+        self.logger.info(f"Filtering assets based on selected tokens: {self.selected_tokens}")
+        
+        # Ensure assets dict is initialized - use the assets from Tier1Bot/Tier2Bot/Tier3Bot constructor if none exists
+        if not hasattr(self, 'assets') or not self.assets:
+            if hasattr(self, 'tier'):
+                self.logger.info(f"Using default assets for tier {self.tier}")
+                # Assets are already defined in the constructor
+                # Just continue with filtering
+            else:
+                self.logger.warning("Assets dictionary not initialized, cannot filter assets")
+                return {}
+            
+        # Convert string to list if needed
+        if isinstance(self.selected_tokens, str):
+            self.selected_tokens = [token.strip() for token in self.selected_tokens.split(',') if token.strip()]
+            self.logger.info(f"Converted selected_tokens from string to list: {self.selected_tokens}")
+            
+        if self.selected_tokens:
+            # Create a new dictionary with only selected tokens
+            filtered_assets = {}
+            
+            # Check which user-selected tokens are available in our supported assets
+            available_selected_tokens = []
+            for token in self.selected_tokens:
+                if token in self.assets:
+                    filtered_assets[token] = self.assets[token]
+                    available_selected_tokens.append(token)
+                    self.logger.info(f"Including selected token: {token}")
+                else:
+                    self.logger.warning(f"Selected token not supported by this tier: {token}")
+            
+            self.logger.info(f"User selected tokens: {self.selected_tokens}")
+            self.logger.info(f"Available selected tokens: {available_selected_tokens}")
+            
+            if available_selected_tokens:
+                # Filter assets to only include selected ones
+                self.assets = filtered_assets
+                self.supported_assets = available_selected_tokens
+                self.logger.info(f"Bot configured for tokens: {available_selected_tokens}")
+            else:
+                self.logger.error("No valid selected tokens found! Bot will not trade.")
+                # Clear assets to prevent trading
+                self.assets = {}
+                self.supported_assets = []
+        else:
+            self.logger.warning("No selected tokens provided, bot will not trade.")
+            # Clear assets to prevent trading
+            self.assets = {}
+            self.supported_assets = []
+            
+        # Final check of which assets are actually being used
+        self.logger.info(f"Final assets used by bot: {list(self.assets.keys())}")
+        return self.assets
+    
+    def load_credentials(self):
+        """Load API credentials from config file"""
+        self.logger.info("Loading credentials from config file")
+        
+        try:
+            # Always use ConfigParser methods for accessing configuration
+            if self.config.has_section('credentials'):
+                # Kraken credentials
+                if self.config.has_option('credentials', 'kraken_api_key'):
+                    self.kraken_api_key = self.config.get('credentials', 'kraken_api_key')
+                else:
+                    self.logger.warning("Kraken API key not found in config")
+                    self.kraken_api_key = ""
+                
+                if self.config.has_option('credentials', 'kraken_api_secret'):
+                    self.kraken_api_secret = self.config.get('credentials', 'kraken_api_secret')
+                else:
+                    self.logger.warning("Kraken API secret not found in config")
+                    self.kraken_api_secret = ""
+                
+                # Hyperliquid credentials
+                if self.config.has_option('credentials', 'hyperliquid_private_key'):
+                    self.hyperliquid_private_key = self.config.get('credentials', 'hyperliquid_private_key')
+                else:
+                    self.logger.warning("Hyperliquid private key not found in config")
+                    self.hyperliquid_private_key = ""
+            else:
+                self.logger.warning("Credentials section not found in config")
+                self.kraken_api_key = ""
+                self.kraken_api_secret = ""
+                self.hyperliquid_private_key = ""
+            
+            self.logger.info("Loaded credentials from config file")
+            
+        except Exception as e:
+            self.logger.error(f"Error loading credentials: {e}")
+            # Initialize empty credentials to prevent attribute errors
+            self.kraken_api_key = ""
+            self.kraken_api_secret = ""
+            self.hyperliquid_private_key = ""
+    
+    def load_custom_settings(self):
+        """Load custom settings from config file"""
+        try:
+            # Always use ConfigParser methods to access config
+            try:
+                # User-specific strategies
+                if self.config.has_section('strategies'):
+                    self.entry_strategy = self.config.get('strategies', 'entry', fallback='default')
+                    self.exit_strategy = self.config.get('strategies', 'exit', fallback='default')
+                    self.logger.info(f"Loaded custom strategies for user {self.user_id}: entry={self.entry_strategy}, exit={self.exit_strategy}")
+                else:
+                    self.entry_strategy = 'default'
+                    self.exit_strategy = 'default'
+                
+                # Custom position sizes if provided
+                if self.config.has_section('position_sizes'):
+                    for asset in self.assets:
+                        if self.config.has_option('position_sizes', asset.lower()):
+                            size = self.config.getfloat('position_sizes', asset.lower())
+                            self.assets[asset]['position_size'] = size
+                            self.logger.info(f"Custom position size for {asset}: ${size}")
+                
+                return True
+            except (configparser.NoSectionError, configparser.NoOptionError) as e:
+                self.logger.warning(f"Some custom settings not found: {e}")
+                return False
+        except Exception as e:
+            self.logger.error(f"Error loading custom settings: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+    
+    def setup_logging(self):
+        """Setup logging configuration with log rotation"""
+        # Create a formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        
+        # Setup file handler with rotation (10 MB max size, keep 5 backup logs)
+        log_filename = f'arb_bot_{self.user_id}.log'
+        file_handler = RotatingFileHandler(
+            log_filename,
+            maxBytes=10*1024*1024,  # 10 MB
+            backupCount=5
+        )
+        file_handler.setFormatter(formatter)
+        
+        # Setup console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        
+        # Setup logger
+        self.logger = logging.getLogger(f"arb_bot_{self.user_id}")
+        self.logger.setLevel(logging.INFO)
+        
+        # Clear existing handlers to avoid duplicates on reinit
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+            
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+    
+    def setup_apis(self):
+        """
+        Set up API connections and fetch initial data
+        """
+        try:
+            self.logger.info("Setting up API connections...")
+            
+            # Initialize Kraken API credentials from config
+            self.kraken_api_key = self.get_config_value('credentials', 'kraken_api_key', '')
+            self.kraken_api_secret = self.get_config_value('credentials', 'kraken_api_secret', '')
+            
+            # Check if API credentials are configured
+            if not self.kraken_api_key or not self.kraken_api_secret:
+                self.logger.warning("Kraken API credentials not configured")
+            else:
+                self.logger.info("Kraken API credentials loaded")
+                
+                # Test Kraken API connection with a simple balance check
+                try:
+                    test_data = {}
+                    result = self.kraken_request('/0/private/Balance', test_data)
+                    self.logger.info("Kraken API connection successful")
+                except Exception as e:
+                    self.logger.error(f"Kraken API connection test failed: {str(e)}")
+            
+            # Initialize Hyperliquid API credentials
+            self.hyperliquid_private_key = self.get_config_value('credentials', 'hyperliquid_private_key', '')
+            
+            if not self.hyperliquid_private_key:
+                self.logger.warning("Hyperliquid private key not configured")
+            else:
+                self.logger.info("Hyperliquid private key loaded")
+                
+            # Initialize WebSocket URL
+            self.ws_url = "wss://api.hyperliquid.xyz/ws"
+            
+            # Initialize message queue for WebSocket messages
+            self.ws_message_queue = queue.Queue()
+            
+            self.logger.info("API setup completed")
+            
+        except Exception as e:
+            self.logger.error(f"Error in setup_apis: {str(e)}")
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            raise Exception(f"Failed to initialize APIs: {e}")
+    
+    def start_message_processor(self):
+        """Start the background thread for processing WebSocket messages"""
+        processor_thread = threading.Thread(target=self.process_websocket_messages)
+        processor_thread.daemon = True
+        processor_thread.start()
+        self.logger.info("Started WebSocket message processor thread")
+    
+    def process_websocket_messages(self):
+        """Process messages from the WebSocket message queue"""
+        try:
+            self.logger.info("Started WebSocket message processor thread")
+            while self.running:
+                try:
+                    # Get message from queue with timeout to avoid blocking forever
+                    message = self.ws_message_queue.get(timeout=1)
+                    
+                    # Process the message
+                    self.process_ws_message(message)
+                    
+                    # Mark the task as done
+                    self.ws_message_queue.task_done()
+                except queue.Empty:
+                    # Queue is empty, continue waiting
+                    continue
+                except Exception as e:
+                    self.logger.error(f"Error processing WebSocket message from queue: {e}")
+                    import traceback
+                    self.logger.error(f"Traceback: {traceback.format_exc()}")
+                    # Continue processing other messages even if one fails
+                    continue
+        except Exception as e:
+            self.logger.error(f"WebSocket message processor thread error: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+        finally:
+            self.logger.info("WebSocket message processor thread stopped")
+    
+    def process_ws_message(self, message):
+        """Process a message from the WebSocket"""
+        try:
+            # Handle binary messages (memoryview/bytes)
+            if isinstance(message, (memoryview, bytes)):
+                try:
+                    message = message.tobytes() if isinstance(message, memoryview) else message
+                    message = message.decode('utf-8')
+                except Exception as e:
+                    self.logger.error(f"Failed to decode binary message: {type(message)}, error: {e}")
+                    return
+            
+            # Log the message type and a preview for debugging
+            self.logger.debug(f"Processing WebSocket message of type {type(message)}")
+            if isinstance(message, str):
+                self.logger.debug(f"Message preview: {message[:100]}...")
+            
+            # Parse the JSON message
+            try:
+                message_data = json.loads(message)
+            except json.JSONDecodeError as e:
+                self.logger.error(f"JSON decode error: {e}, message: {message[:200]}")
+                return
+            except TypeError as e:
+                self.logger.error(f"Type error when parsing message: {e}, type: {type(message)}")
+                return
+            
+            # Check if it's a response to a subscription
+            if isinstance(message_data, dict) and message_data.get("channel") == "subscription":
+                asset = message_data.get("asset")
+                if asset:
+                    self.logger.info(f"Subscribed to {asset} updates")
+                    if asset in self.assets:
+                        self.assets[asset]["websocket_subscribed"] = True
+                return
+
+            # Handle ActiveAssetCtx format (most common in Hyperliquid)
+            if isinstance(message_data, dict) and message_data.get("channel") == "activeAssetCtx":
+                ctx = message_data.get("data", {}).get("ctx", {})
+                asset = message_data.get("coin")
+                
+                if asset and asset in self.assets and ctx:
+                    # Process funding rate
+                    if "funding" in ctx:
+                        funding_rate = float(ctx["funding"])
+                        self.assets[asset]["ws_funding_rate"] = funding_rate
+                        self.last_funding_rates[asset] = funding_rate * 100  # Store as percentage
+                        self.logger.info(f"Updated {asset} funding rate from WebSocket: {funding_rate * 100:.4f}%")
+                        
+                    # Process predicted funding rate if available
+                    if "predFunding" in ctx:
+                        pred_rate = float(ctx["predFunding"])
+                        self.assets[asset]["ws_predicted_rate"] = pred_rate
+                        self.logger.info(f"Updated {asset} predicted funding rate: {pred_rate * 100:.4f}%")
+                    
+                    # Update percentiles and check conditions
+                    if "funding" in ctx:
+                        rate_pct = float(ctx["funding"]) * 100
+                        self.last_percentiles[asset] = rate_pct
+                        
+                        # Check conditions after updating rates
+                        if self.assets[asset]["in_position"]:
+                            self.check_exit_conditions(asset)
+                        else:
+                            self.check_entry_conditions(asset)
+                return
+            
+            # Handle assetCtxs array format (newer API)
+            if isinstance(message_data, dict) and "data" in message_data and "assetCtxs" in message_data["data"]:
+                self.logger.info(f"Received asset context update with {len(message_data['data']['assetCtxs'])} assets")
+                for asset_ctx in message_data["data"]["assetCtxs"]:
+                    if "asset" in asset_ctx and "funding" in asset_ctx:
+                        asset = asset_ctx["asset"]
+                        funding_data = asset_ctx["funding"]
+                        
+                        if asset in self.assets:
+                            # Parse funding rate and predicted rate
+                            if "current" in funding_data:
+                                funding_rate = float(funding_data["current"]) * 100  # Convert to percentage
+                                self.assets[asset]["ws_funding_rate"] = funding_rate / 100  # Store as decimal
+                                
+                                # Store in last_funding_rates for consistency
+                                self.last_funding_rates[asset] = funding_rate
+                                
+                                self.logger.info(f"Updated {asset} funding rate from WebSocket: {funding_rate:.4f}%")
+                                
+                            if "predicted" in funding_data:
+                                predicted_rate = float(funding_data["predicted"]) * 100  # Convert to percentage
+                                self.assets[asset]["ws_predicted_rate"] = predicted_rate / 100  # Store as decimal
+                                self.logger.info(f"Updated {asset} predicted funding rate: {predicted_rate:.4f}%")
+                                
+                            # Update percentiles for condition checking
+                            self.last_percentiles[asset] = funding_rate
+                            
+                            # Check conditions after updating rates
+                            if self.assets[asset]["in_position"]:
+                                self.check_exit_conditions(asset)
+                            else:
+                                self.check_entry_conditions(asset)
+                return
+                
+            # Handle funding type message (simple format)
+            if isinstance(message_data, dict) and "type" in message_data and message_data["type"] == "funding":
+                asset = message_data.get("asset")
+                if asset and "rate" in message_data and asset in self.assets:
+                    rate = float(message_data["rate"]) * 100  # Convert to percentage
+                    self.assets[asset]["ws_funding_rate"] = rate / 100  # Store as decimal
+                    self.last_funding_rates[asset] = rate
+                    self.logger.info(f"Updated {asset} funding rate from type-based message: {rate:.4f}%")
+                    
+                    # Check conditions after updating rates
+                    if self.assets[asset]["in_position"]:
+                        self.check_exit_conditions(asset)
+                    else:
+                        self.check_entry_conditions(asset)
+                return
+            
+            # Log unrecognized message format for debugging
+            self.logger.debug(f"Unrecognized WebSocket message format: {message_data.keys() if isinstance(message_data, dict) else type(message_data)}")
+        
+        except Exception as e:
+            self.logger.error(f"Error processing WebSocket message: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            if isinstance(message, str) and len(message) > 0:
+                self.logger.error(f"Message preview: {message[:200]}")
+    
+    def update_price_data(self, symbol, current_price, previous_bid, previous_ask):
+        """
+        Update price data for an asset based on ticker updates.
+        This is a placeholder method meant to be overridden by child classes.
+        
+        Args:
+            symbol (str): The trading symbol/asset name
+            current_price (float): Current price of the asset
+            previous_bid (float): Previous bid price
+            previous_ask (float): Previous ask price
+        """
+        # This is a placeholder - child classes should override this method
+        pass
+    
+    def update_ticker_data(self, asset, data):
+        """Update ticker data for an asset"""
+        try:
+            if asset not in self.assets:
+                return
+                
+            asset_data = self.assets[asset]
+            asset_data['hl_best_bid'] = float(data.get('bid', 0))
+            asset_data['hl_best_ask'] = float(data.get('ask', 0))
+            asset_data['hl_24h_volume'] = float(data.get('volume', 0))
+            asset_data['hl_24h_high'] = float(data.get('high', 0))
+            asset_data['hl_24h_low'] = float(data.get('low', 0))
+            asset_data['hl_last_price'] = float(data.get('last', 0))
+        except Exception as e:
+            self.logger.error(f"Error updating ticker data for {asset}: {str(e)}")
+    
+    def check_for_flash_crash(self, asset: str):
+        """
+        Check for sudden large price movements that could indicate a flash crash
+        
+        Args:
+            asset: Asset symbol to check
+        """
+        asset_data = self.assets[asset]
+        
+        # Skip if we don't have previous prices
+        if not all([
+            'previous_bid' in asset_data,
+            'previous_ask' in asset_data,
+            asset_data["previous_bid"],
+            asset_data["previous_ask"],
+            asset_data["hl_best_bid"],
+            asset_data["hl_best_ask"]
+        ]):
+            return
+        
+        # Calculate percentage changes
+        bid_change = abs(asset_data["hl_best_bid"] / asset_data["previous_bid"] - 1)
+        ask_change = abs(asset_data["hl_best_ask"] / asset_data["previous_ask"] - 1)
+        
+        # If either bid or ask changed by more than the threshold, trigger flash crash protection
+        if bid_change > self.max_price_deviation or ask_change > self.max_price_deviation:
+            self.logger.warning(
+                f"⚠️ FLASH CRASH PROTECTION TRIGGERED for {asset}: "
+                f"Bid change: {bid_change:.2%}, Ask change: {ask_change:.2%}"
+            )
+            
+            # Set flash crash flag
+            asset_data["flash_crash_detected"] = True
+            asset_data["flash_crash_time"] = time.time()
+            
+            # If in position, consider emergency exit
+            if asset_data["in_position"]:
+                self.logger.warning(f"⚠️ Flash crash during active position for {asset}, monitoring closely")
+    
+    def check_margin_levels(self):
+        """Check margin levels to prevent liquidation"""
+        current_time = time.time()
+        
+        # Only check at specified intervals
+        if current_time - self.last_margin_check_time < self.margin_check_interval:
+            return
+            
+        self.last_margin_check_time = current_time
+        
+        try:
+            # Get account status from Hyperliquid
+            account_info = self.get_hyperliquid_account_info()
+            
+            if not account_info:
+                self.logger.error("Failed to get account status")
+                return
+                
+            # Check if margin ratio is available
+            if 'marginRatio' in account_info:
+                margin_ratio = float(account_info['marginRatio'])
+                self.logger.info(f"Current margin ratio: {margin_ratio:.2%}")
+                
+                # If margin ratio is below threshold, take protective action
+                if margin_ratio < self.min_margin_ratio:
+                    self.logger.critical(
+                        f"⚠️ LIQUIDATION PROTECTION TRIGGERED: "
+                        f"Margin ratio {margin_ratio:.2%} below threshold {self.min_margin_ratio:.2%}"
+                    )
+                    
+                    # Close all positions to prevent liquidation
+                    self.emergency_close_all_positions()
+                    
+        except Exception as e:
+            self.logger.error(f"Error checking margin levels: {e}")
+            
+    def get_hyperliquid_account_info(self):
+        """Get account information from Hyperliquid using wallet address"""
+        try:
+            if not hasattr(self, 'hl_secret') or not self.hl_secret:
+                self.logger.error("Hyperliquid private key not initialized")
+                return None
+                
+            # Get wallet address from config, not the private key
+            if not hasattr(self, 'hl_wallet') or not self.hl_wallet:
+                # Try to load wallet address from config file
+                if self.config_path and os.path.exists(self.config_path):
+                    config = configparser.ConfigParser()
+                    config.read(self.config_path)
+                    
+                    if 'hyperliquid' in config and 'wallet_address' in config['hyperliquid']:
+                        self.hl_wallet = config['hyperliquid']['wallet_address']
+                        self.logger.info(f"Loaded Hyperliquid wallet address from config: {self.hl_wallet}")
+                    else:
+                        # Only as fallback, derive wallet address from private key
+                        try:
+                            # Clean and validate private key format
+                            private_key = self.hl_secret.strip().replace('0x', '').lower()
+                            # Ensure key is valid hex
+                            int(private_key, 16)  # This will raise ValueError if not valid hex
+                            wallet = Account.from_key(private_key)
+                            self.hl_wallet = wallet.address
+                            self.logger.info(f"Derived Hyperliquid wallet address: {self.hl_wallet}")
+                        except Exception as e:
+                            self.logger.error(f"Error deriving wallet address from private key: {e}")
+                            return None
+            else:
+                self.logger.info(f"Using existing Hyperliquid wallet address: {self.hl_wallet}")
+                
+            # Standardize address format
+            address = self.hl_wallet.lower()
+            if not address.startswith('0x'):
+                address = '0x' + address
+                
+            self.logger.info(f"Checking Hyperliquid balance for address: {address}")
+                
+            # Base URL for Hyperliquid info API
+            info_url = "https://api.hyperliquid.xyz/info"
+            
+            # Get user state - shows account balance and margin info
+            user_payload = {"type": "userState", "user": address}
+            r = requests.post(info_url, json=user_payload)
+            
+            if r.status_code != 200:
+                # Fall back to clearinghouseState
+                alt_payload = {"type": "clearinghouseState", "user": address}
+                r = requests.post(info_url, json=alt_payload)
+                
+            if r.status_code != 200:
+                self.logger.error(f"Failed to get Hyperliquid account info: {r.status_code}")
+                return None
+                
+            user_state = r.json()
+            
+            # Log the raw response for debugging
+            self.logger.info(f"Raw Hyperliquid API response: {json.dumps(user_state)}")
+            
+            margin_summary = user_state.get('marginSummary', {})
+            
+            if not margin_summary:
+                self.logger.error("No margin summary found in Hyperliquid response")
+                return None
+                
+            # Extract relevant information exactly as in the user's script
+            account_value = float(margin_summary.get('accountValue', 0))
+            margin_balance = float(margin_summary.get('marginBalance', 0))
+            total_margin_used = float(margin_summary.get('totalMarginUsed', 0))
+            available_balance = float(margin_summary.get('availableBalance', 0))
+            
+            self.logger.info(f"Hyperliquid account value: ${account_value:.2f}")
+            self.logger.info(f"Hyperliquid margin balance: ${margin_balance:.2f}")
+            self.logger.info(f"Hyperliquid total margin used: ${total_margin_used:.2f}")
+            self.logger.info(f"Hyperliquid available balance: ${available_balance:.2f}")
+            
+            # Calculate margin level if applicable
+            margin_level = None
+            if total_margin_used > 0:
+                margin_level = (margin_balance / total_margin_used) * 100
+                self.logger.info(f"Hyperliquid margin level: {margin_level:.2f}%")
+            
+            return {
+                'account_value': account_value,
+                'margin_balance': margin_balance,
+                'total_margin_used': total_margin_used,
+                'available_balance': available_balance,
+                'margin_level': margin_level
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting Hyperliquid account info: {str(e)}")
+            return None
+            
+    def get_kraken_balance(self):
+        """Get Kraken balance in USD"""
+        try:
+            kraken_balance = self.kraken_request('/0/private/Balance', {"nonce": str(int(1000*time.time()))})
+            
+            if 'error' in kraken_balance and kraken_balance['error']:
+                error_msg = f"Failed to get Kraken balance: {kraken_balance['error']}"
+                self.logger.error(error_msg)
+                return None
+            elif 'result' in kraken_balance:
+                # Get USD balance (Kraken uses ZUSD for USD)
+                usd_balance = float(kraken_balance['result'].get('ZUSD', 0))
+                self.logger.info(f"Kraken USD balance: ${usd_balance:.2f}")
+                
+                # Return as dictionary with 'total' key for compatibility with bot_service
+                return {
+                    'total': usd_balance,
+                    'available': usd_balance
+                }
+            else:
+                self.logger.error("Unknown error retrieving Kraken balance")
+                return None
+        except Exception as e:
+            self.logger.error(f"Error getting Kraken balance: {e}")
+            return None
+            
+    def get_hl_position(self, asset=None):
+        """Get current position size on Hyperliquid for a specific asset or all assets"""
+        try:
+            info_url = "https://api.hyperliquid.xyz/info"
+            
+            # Get wallet address
+            if not hasattr(self, 'hl_wallet') or not self.hl_wallet:
+                self.logger.error("Hyperliquid wallet address not initialized")
+                return {}
+                
+            # Standardize address format
+            address = self.hl_wallet.lower()
+            if not address.startswith('0x'):
+                address = '0x' + address
+                
+            # Get positions from the API
+            user_payload = {"type": "userState", "user": address}
+            r = requests.post(info_url, json=user_payload)
+            
+            if r.status_code != 200:
+                # Fall back to clearinghouseState
+                alt_payload = {"type": "clearinghouseState", "user": address}
+                r = requests.post(info_url, json=alt_payload)
+                
+            if r.status_code != 200:
+                self.logger.error(f"Failed to get Hyperliquid positions: {r.status_code}")
+                return {}
+                
+            user_state = r.json()
+            
+            # Extract positions
+            positions = {}
+            assetPositions = user_state.get('assetPositions', [])
+            
+            for pos in assetPositions:
+                coin = pos.get('coin')
+                size = float(pos.get('position', {}).get('szi', 0))
+                entry_px = float(pos.get('position', {}).get('entryPx', 0))
+                
+                if asset is None or asset == coin:
+                    positions[coin] = {
+                        'size': size,
+                        'entry_price': entry_px,
+                        'value': size * entry_px
+                    }
+                    
+            return positions
+            
+        except Exception as e:
+            self.logger.error(f"Error getting Hyperliquid positions: {e}")
+            return {}
+    
+    def emergency_close_all_positions(self):
+        """Emergency close all positions to prevent liquidation"""
+        self.logger.warning("EMERGENCY CLOSING ALL POSITIONS")
+        
+        for asset in self.assets:
+            asset_data = self.assets[asset]
+            if asset_data["in_position"]:
+                self.logger.warning(f"Emergency closing {asset} position")
+                try:
+                    # First close Hyperliquid position
+                    hl_success = self.close_hl_position(asset)
+                    
+                    # Then close Kraken position
+                    if asset_data["kraken_position_size"] > 0:
+                        kraken_success, _ = self.place_kraken_order(
+                            asset=asset,
+                            is_entry=False,
+                            position_size=asset_data["kraken_position_size"]
+                        )
+                        
+                        if not kraken_success:
+                            self.logger.error(f"Failed to close Kraken position for {asset}")
+                    
+                    # Mark position as closed regardless of success
+                    # (we'll resynchronize later)
+                    asset_data["in_position"] = False
+                    asset_data["hl_position_size"] = 0.0
+                    asset_data["kraken_position_size"] = 0.0
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in emergency close for {asset}: {e}")
+                    
+        self.logger.warning("Emergency position closing completed")
+    
+    def enforce_kraken_rate_limit(self):
+        """Enforce rate limiting for Kraken API calls"""
+        current_time = time.time()
+        
+        # Remove calls older than the rate limit window
+        self.kraken_call_times = [t for t in self.kraken_call_times 
+                                if current_time - t < self.kraken_rate_limit_window]
+        
+        # Check if we've exceeded the rate limit
+        if len(self.kraken_call_times) >= self.kraken_max_calls_per_window:
+            # Calculate wait time until oldest call expires
+            wait_time = self.kraken_rate_limit_window - (current_time - self.kraken_call_times[0])
+            if wait_time > 0:
+                self.logger.warning(f"Rate limit reached. Waiting {wait_time:.2f} seconds.")
+                time.sleep(wait_time)
+        
+        # Add current call time
+        self.kraken_call_times.append(current_time)
+        
+        # Ensure minimum interval between calls
+        if len(self.kraken_call_times) > 1:
+            time_since_last_call = current_time - self.kraken_call_times[-2]
+            if time_since_last_call < self.kraken_api_min_interval:
+                sleep_time = self.kraken_api_min_interval - time_since_last_call
+                time.sleep(sleep_time)
+    
+    def check_balances(self):
+        """
+        Verify sufficient USD balance before trading
+        
+        Returns:
+            dict: A dictionary containing balance information or error messages
+        """
+        balances = {
+            'kraken': {'success': False, 'balance': 0, 'error': None},
+            'hyperliquid': {'success': False, 'account_value': 0, 'margin': 0, 'available': 0, 'error': None},
+            'sufficient': True  # Flag to indicate if balances are sufficient for trading
+        }
+        
+        try:
+            # Check Kraken USD balance
+            kraken_balance = self.kraken_request('/0/private/Balance', {"nonce": str(int(1000*time.time()))})
+            
+            if 'error' in kraken_balance and kraken_balance['error']:
+                error_msg = f"Failed to get Kraken balance: {kraken_balance['error']}"
+                self.logger.error(error_msg)
+                balances['kraken']['error'] = error_msg
+            elif 'result' in kraken_balance:
+                # Get USD balance (Kraken uses ZUSD for USD)
+                usd_balance = float(kraken_balance['result'].get('ZUSD', 0))
+                self.logger.info(f"Kraken USD balance: ${usd_balance:.2f}")
+                
+                balances['kraken']['success'] = True
+                balances['kraken']['balance'] = usd_balance
+                
+                # Check for low balance threshold
+                if usd_balance < 20:
+                    self.logger.warning(f"⚠️ Low Kraken USD balance: ${usd_balance:.2f}")
+                    balances['sufficient'] = False
+                
+                # If assets are not yet initialized or empty, we can't check position sizes
+                if not hasattr(self, 'assets') or not self.assets:
+                    self.logger.info("Assets not yet initialized, skipping position size check")
+                else:
+                    # Check if balance is sufficient for all assets combined
+                    try:
+                        total_required = sum(asset_data.get("position_size", 0) for asset_data in self.assets.values())
+                        self.logger.info(f"Total USD required for all positions: ${total_required:.2f}")
+                        
+                        if usd_balance < total_required:
+                            warning_msg = f"⚠️ Insufficient USD balance (${usd_balance:.2f}) for total position size (${total_required:.2f})"
+                            self.logger.warning(warning_msg)
+                            balances['sufficient'] = False
+                    except (AttributeError, TypeError) as e:
+                        self.logger.warning(f"Could not calculate required balance: {e}")
+            else:
+                balances['kraken']['error'] = "Unknown error retrieving Kraken balance"
+                
+            # Check Hyperliquid balance using the SDK
+            try:
+                # Get account status from Hyperliquid
+                account_info = self.get_hyperliquid_account_info()
+                
+                if account_info:
+                    # Extract and log the balances
+                    account_value = account_info['account_value']
+                    margin_balance = account_info['margin_balance']
+                    available_balance = account_info['available_balance']
+                    
+                    balances['hyperliquid']['success'] = True
+                    balances['hyperliquid']['account_value'] = account_value
+                    balances['hyperliquid']['margin'] = margin_balance
+                    balances['hyperliquid']['available'] = available_balance
+                    
+                    # Prioritize account_value for warning checks
+                    if account_value < 5:  # Lower threshold for account value
+                        self.logger.warning(f"⚠️ Low Hyperliquid account value: ${account_value:.2f}")
+                        balances['sufficient'] = False
+                else:
+                    error_msg = "Failed to retrieve Hyperliquid account information"
+                    self.logger.error(error_msg)
+                    balances['hyperliquid']['error'] = error_msg
+                
+            except Exception as e:
+                error_msg = f"Error checking Hyperliquid balance: {e}"
+                self.logger.error(error_msg)
+                balances['hyperliquid']['error'] = error_msg
+                
+        except Exception as e:
+            error_msg = f"Error checking balances: {e}"
+            self.logger.error(error_msg)
+            balances['error'] = error_msg
+            
+        return balances
+    
+    def get_recent_volatility(self, asset: str) -> float:
+        """
+        Calculate recent volatility for an asset
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            Recent volatility as a percentage
+        """
+        asset_data = self.assets[asset]
+        
+        if 'historical_prices' not in asset_data or len(asset_data['historical_prices']) < 2:
+            return self.slippage_buffer  # Default to base slippage if not enough data
+            
+        prices = list(asset_data['historical_prices'])
+        returns = [prices[i]/prices[i-1] - 1 for i in range(1, len(prices))]
+        volatility = np.std(returns) * 100  # Convert to percentage
+        
+        # Cap at reasonable values
+        return min(max(volatility, self.slippage_buffer), 0.01)  # Between base slippage and 1%
+    
+    def execute_with_cooldown(self, func, *args, **kwargs):
+        """
+        Execute a function with cooldown on errors
+        
+        Args:
+            func: Function to execute
+            *args: Arguments to pass to function
+            **kwargs: Keyword arguments to pass to function
+            
+        Returns:
+            Result of function or None on error
+        """
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            self.logger.error(f"Function execution failed: {e}, backing off for {self.error_cooldown} seconds")
+            self.consecutive_errors += 1
+            
+            # Apply extended cooldown if too many consecutive errors
+            if self.consecutive_errors >= self.max_consecutive_errors:
+                self.logger.warning(f"Too many consecutive errors ({self.consecutive_errors}), applying extended cooldown")
+                time.sleep(self.extended_cooldown)
+                self.consecutive_errors = 0
+            else:
+                time.sleep(self.error_cooldown)
+                
+            return None
+    
+    def calculate_historical_percentile(self, asset: str):
+        """
+        Calculate historical percentiles for a given asset by fetching real
+        historical data from the API. These percentiles are used to determine
+        when to enter and exit positions.
+        
+        Args:
+            asset: The asset to calculate percentiles for
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            self.logger.info(f"Fetching historical funding rates for {asset}...")
+            
+            # Get timestamp for 20 days ago (to ensure enough samples)
+            current_time = int(time.time() * 1000)
+            start_time = current_time - (20 * 24 * 60 * 60 * 1000)  # 20 days in milliseconds
+            
+            # Prepare API request
+            url = "https://api.hyperliquid.xyz/info"
+            payload = {
+                "type": "fundingHistory",
+                "coin": asset,
+                "startTime": start_time
+            }
+            
+            # Make the API request
+            response = requests.post(url, json=payload)
+            if not response.ok:
+                self.logger.error(f"Error fetching historical funding rates for {asset}: {response.status_code} {response.text}")
+                return False
+            
+            # Parse the response
+            data = response.json()
+            if not data or not isinstance(data, list):
+                self.logger.error(f"Invalid response for historical funding rates for {asset}: {data}")
+                return False
+                
+            # Sort the data by timestamp (newest first)
+            data.sort(key=lambda x: x.get("time", 0), reverse=True)
+            
+            # Limit to 500 samples
+            data = data[:500]
+            
+            # Extract funding rates and convert to percentages
+            rates = []
+            timestamps = []
+            
+            for entry in data:
+                rate = entry.get("funding")
+                if rate is not None:
+                    rates.append(float(rate) * 100)  # Convert from decimal to percentage
+                    timestamps.append(entry.get("time"))
+            
+            # Make sure we have enough data
+            if len(rates) < 10:
+                self.logger.warning(f"Not enough historical funding rate data for {asset}: only {len(rates)} samples")
+                return False
+                
+            # Calculate percentiles - store as string keys
+            percentiles = {
+                "10": np.percentile(rates, 10),
+                "20": np.percentile(rates, 20),
+                "35": np.percentile(rates, 35),
+                "50": np.percentile(rates, 50),
+                "60": np.percentile(rates, 60),
+                "75": np.percentile(rates, 75),
+                "85": np.percentile(rates, 85),
+                "95": np.percentile(rates, 95)
+            }
+            
+            # Store the percentiles
+            if not hasattr(self, 'historical_percentiles'):
+                self.historical_percentiles = {}
+            self.historical_percentiles[asset] = percentiles
+            
+            # Store the historical rates for reference
+            if not hasattr(self, 'funding_history'):
+                self.funding_history = {}
+            self.funding_history[asset] = rates
+            
+            # Format the timestamp for logging
+            current_dt = datetime.now(self.est_tz)
+            
+            # Calculate some statistics for logging
+            mean_rate = np.mean(rates)
+            max_rate = np.max(rates)
+            
+            # Log the results
+            self.logger.info(f"Historical Analysis for {asset} (Last {len(rates)} Samples up to {current_dt.strftime('%Y-%m-%d %H:%M:%S')} EST)")
+            self.logger.info(f"60th percentile: {percentiles['60']:.4f}%")
+            self.logger.info(f"Number of samples: {len(rates)}")
+            self.logger.info(f"Mean rate: {mean_rate:.4f}%")
+            self.logger.info(f"Max rate: {max_rate:.4f}%")
+            
+            # Log most recent funding rates
+            self.logger.info("\nMost recent funding rates:")
+            for i in range(min(5, len(timestamps))):
+                dt = datetime.fromtimestamp(timestamps[i] / 1000, self.est_tz)
+                self.logger.info(f"{dt}: {rates[i]:.4f}%")
+                
+            self.logger.info(f"Successfully calculated historical percentiles for {asset}")
+            
+            # Also log the entry and exit thresholds 
+            entry_threshold = self.entry_percentiles.get(self.entry_strategy, 60)
+            exit_threshold = self.exit_percentiles.get(self.exit_strategy, 50)
+            self.logger.info(f"Entry threshold ({entry_threshold}th percentile): {percentiles[str(entry_threshold)]:.4f}%")
+            self.logger.info(f"Exit threshold ({exit_threshold}th percentile): {percentiles[str(exit_threshold)]:.4f}%")
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error calculating historical percentiles for {asset}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+    
+    def get_current_funding_rate(self, asset: str) -> float:
+        """
+        Get the current funding rate for an asset.
+        
+        The function attempts to get the funding rate from several sources in order:
+        1. From the WebSocket data in the asset dictionary
+        2. From the cached last_funding_rates dictionary
+        3. By making an API call to get the latest funding rate
+        4. If all else fails, returns a small default value
+        
+        Args:
+            asset: The asset to get the funding rate for
+            
+        Returns:
+            The current funding rate as a percentage (e.g., 0.01 for 0.01%)
+        """
+        try:
+            self.logger.debug(f"Trying to get funding rate for {asset}")
+            
+            # First try to get funding rate from WebSocket connection
+            if asset in self.assets and self.assets[asset].get("ws_funding_rate") is not None:
+                rate = float(self.assets[asset]["ws_funding_rate"]) * 100  # Convert from decimal to percentage
+                self.logger.debug(f"Using WebSocket funding rate for {asset}: {rate:.4f}%")
+                return rate
+            else:
+                self.logger.debug(f"No WebSocket funding rate found for {asset} in self.assets[{asset}]")
+            
+            # Then try to use the cached funding rate from last_funding_rates
+            if asset in self.last_funding_rates and self.last_funding_rates[asset] is not None:
+                rate = self.last_funding_rates[asset]
+                self.logger.debug(f"Using cached funding rate for {asset}: {rate:.4f}%")
+                return rate
+            else:
+                self.logger.debug(f"No cached funding rate found for {asset} in self.last_funding_rates")
+            
+            # If real-time rate is not available, fall back to API
+            self.logger.info(f"No real-time funding rate found for {asset}, fetching from API")
+            
+            # Make API request to get current funding rate
+            try:
+                url = "https://api.hyperliquid.xyz/info"
+                payload = {
+                    "type": "fundingHistory",
+                    "coin": asset,
+                    "startTime": int(time.time() * 1000) - (24 * 60 * 60 * 1000)  # Last 24 hours
+                }
+                
+                response = requests.post(url, json=payload)
+                if response.ok:
+                    data = response.json()
+                    if data and isinstance(data, list) and len(data) > 0:
+                        # Sort by timestamp (newest first)
+                        data.sort(key=lambda x: x.get("time", 0), reverse=True)
+                        
+                        # Get the most recent funding rate
+                        latest = data[0]
+                        if "funding" in latest:
+                            rate = float(latest["funding"]) * 100  # Convert from decimal to percentage
+                            
+                            # Cache the rate for future use
+                            self.last_funding_rates[asset] = rate
+                            
+                            self.logger.info(f"Fetched latest funding rate for {asset}: {rate:.4f}%")
+                            return rate
+                        else:
+                            self.logger.debug(f"No 'funding' key in latest API response: {latest}")
+                    else:
+                        self.logger.debug(f"Empty or invalid response data: {data}")
+                else:
+                    self.logger.debug(f"API request failed with status {response.status_code}: {response.text}")
+            except Exception as e:
+                self.logger.error(f"Error fetching funding rate from API: {e}")
+                import traceback
+                self.logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # If all else fails, return a small default value
+            self.logger.warning(f"Unable to get current funding rate for {asset}, using default")
+            return 0.001  # Default to a small positive rate
+            
+        except Exception as e:
+            self.logger.error(f"Error in get_current_funding_rate for {asset}: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return 0.001  # Default to a small positive rate
+    
+    def update_kraken_prices(self, asset: str):
+        """Update Kraken's best bid/ask prices for the specified asset"""
+        bid, ask = self.get_kraken_ticker(asset)
+        self.assets[asset]["kraken_best_bid"] = bid
+        self.assets[asset]["kraken_best_ask"] = ask
+        
+        # Store previous prices for flash crash detection (if not already stored)
+        if bid and 'kraken_previous_bid' not in self.assets[asset]:
+            self.assets[asset]['kraken_previous_bid'] = bid
+        if ask and 'kraken_previous_ask' not in self.assets[asset]:
+            self.assets[asset]['kraken_previous_ask'] = ask
+            
+        # Check for flash crash on Kraken side
+        if bid and ask and 'kraken_previous_bid' in self.assets[asset] and 'kraken_previous_ask' in self.assets[asset]:
+            bid_change = abs(bid / self.assets[asset]['kraken_previous_bid'] - 1)
+            ask_change = abs(ask / self.assets[asset]['kraken_previous_ask'] - 1)
+            
+            if bid_change > self.max_price_deviation or ask_change > self.max_price_deviation:
+                self.logger.warning(
+                    f"⚠️ FLASH CRASH PROTECTION TRIGGERED on Kraken for {asset}: "
+                    f"Bid change: {bid_change:.2%}, Ask change: {ask_change:.2%}"
+                )
+                
+                # Set flash crash flag
+                self.assets[asset]["flash_crash_detected"] = True
+                self.assets[asset]["flash_crash_time"] = time.time()
+                
+            # Update previous prices
+            self.assets[asset]['kraken_previous_bid'] = bid
+            self.assets[asset]['kraken_previous_ask'] = ask
+    
+    def get_hl_order_book(self, asset: str, depth: int = 10) -> Optional[Dict[str, List]]:
+        """
+        Get Hyperliquid order book with specified depth
+        
+        Args:
+            asset: Asset symbol
+            depth: Number of price levels to fetch
+            
+        Returns:
+            Order book data or None if error
+        """
+        try:
+            payload = {
+                "type": "l2Book",
+                "coin": asset
+            }
+            
+            response = requests.post(self.hl_api_url, json=payload)
+            
+            if not response.ok:
+                self.logger.error(f"Order book API error for {asset}: {response.status_code} - {response.text}")
+                return None
+                
+            book_data = response.json()
+            
+            # Transform into a simplified format
+            asks = [(float(level['px']), float(level['sz'])) for level in book_data.get('asks', [])[:depth]]
+            bids = [(float(level['px']), float(level['sz'])) for level in book_data.get('bids', [])[:depth]]
+            
+            return {
+                'asks': asks,
+                'bids': bids
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error getting order book for {asset}: {e}")
+            return None
+    
+    def check_book_depth(self, asset: str, is_buy: bool, size: float) -> Tuple[bool, float]:
+        """
+        Check if there's enough liquidity in the order book
+        
+        Args:
+            asset: Asset symbol
+            is_buy: True if buying, False if selling
+            size: Position size to check
+            
+        Returns:
+            Tuple of (has_liquidity, adjusted_price)
+        """
+        try:
+            book = self.get_hl_order_book(asset, depth=20)
+            
+            if not book:
+                return False, 0.0
+                
+            levels = book['asks'] if is_buy else book['bids']
+            required_size = size * self.min_order_book_depth  # Apply multiplier for safety
+            
+            # Calculate cumulative size and average price
+            cumulative_size = 0
+            weighted_price = 0
+            
+            for price, level_size in levels:
+                available = min(level_size, required_size - cumulative_size)
+                weighted_price += price * available
+                cumulative_size += available
+                
+                if cumulative_size >= required_size:
+                    break
+                    
+            if cumulative_size < required_size:
+                self.logger.warning(f"{asset} Insufficient liquidity: required {required_size}, available {cumulative_size}")
+                return False, 0.0
+                
+            avg_price = weighted_price / cumulative_size
+            
+            self.logger.info(f"{asset} Order book depth check passed: {cumulative_size} available at avg price {avg_price:.4f}")
+            return True, avg_price
+            
+        except Exception as e:
+            self.logger.error(f"Error checking order book depth for {asset}: {e}")
+            return False, 0.0
+    
+    def place_hl_order(self, asset: str, is_entry: bool, position_size: float) -> Tuple[bool, float]:
+        """
+        Place order on Hyperliquid using the appropriate strategy for the asset
+        
+        Args:
+            asset: Asset symbol
+            is_entry: True for entry (sell), False for exit (buy)
+            position_size: Exact size to trade
+            
+        Returns:
+            Tuple of (success status, order size)
+        """
+        try:
+            asset_data = self.assets[asset]
+            
+            side = "Sell" if is_entry else "Buy"
+            order_type = asset_data["hl_order_type"]
+            
+            # Ensure we have current prices
+            if not all([asset_data["hl_best_bid"], asset_data["hl_best_ask"]]):
+                self.logger.error(f"{asset} No valid prices available for order")
+                return False, 0.0
+                
+            # Ensure position size is valid
+            if position_size <= 0:
+                self.logger.error(f"{asset} Invalid order size: {position_size}")
+                return False, 0.0
+                
+            # Set maximum retries based on order type
+            max_retries = self.max_retries if order_type == "limit" else 1
+            
+            for attempt in range(max_retries):
+                try:
+                    # Set leverage to 3x for entry
+                    if is_entry:
+                        self.logger.info(f"{asset} Setting leverage to 3x...")
+                        leverage_response = self.hl_exchange.update_leverage(3, asset)
+                        
+                        # Check for success
+                        if not leverage_response or 'error' in leverage_response:
+                            self.logger.error(f"{asset} Failed to set leverage: {leverage_response}")
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+                                continue
+                            return False, 0.0
+                            
+                    # FIX #2: Dynamic slippage based on volatility
+                    slippage_factor = self.get_recent_volatility(asset)
+                    self.logger.info(f"{asset} Using dynamic slippage factor: {slippage_factor:.4f}%")
+                    
+                    # Place order using appropriate strategy for the asset
+                    if order_type == "market":
+                        # For HPOS - Use market orders
+                        self.logger.info(f"{asset} Placing Hyperliquid {side} MARKET order: Size={position_size}")
+                        order_response = self.hl_exchange.order(
+                            asset,
+                            not is_entry,  # is_buy (False for entry/sell, True for exit/buy)
+                            position_size,
+                            None,  # No price for market orders
+                            {"market": {}}  # Market order type
+                        )
+                        
+                        # Check response for success
+                        if order_response and 'status' in order_response and order_response['status'] == 'success':
+                            self.logger.info(f"{asset} Hyperliquid {side} market order executed successfully")
+                            
+                            # Market orders execute immediately, verify position was created
+                            time.sleep(1)  # Short wait for position to be reflected
+                            actual_size = self.verify_hl_position(asset, is_entry)
+                            
+                            if actual_size is not None:
+                                return True, actual_size
+                            else:
+                                return False, 0.0
+                        else:
+                            self.logger.error(f"{asset} Error placing HL market order: {order_response}")
+                            return False, 0.0
+                    else:
+                        # For BTC - Use limit orders with order book depth check
+                        
+                        # Check order book depth
+                        has_liquidity, avg_price = self.check_book_depth(asset, not is_entry, position_size)
+                        
+                        if not has_liquidity:
+                            self.logger.error(f"{asset} Insufficient order book depth for {side} order of size {position_size}")
+                            return False, 0.0
+                            
+                        # Calculate limit price (starting at mid-price)
+                        mid_price = (asset_data["hl_best_bid"] + asset_data["hl_best_ask"]) / 2
+                        
+                        # Adjust towards more aggressive price on retry
+                        # Start at mid-price, then move towards bid/ask
+                        if attempt == 0:
+                            # First attempt - use mid price with slippage
+                            if is_entry:
+                                # Selling, so use mid price with small discount
+                                limit_price = mid_price * (1 - slippage_factor)
+                            else:
+                                # Buying, so use mid price with small premium
+                                limit_price = mid_price * (1 + slippage_factor)
+                        else:
+                            # Subsequent attempts - move closer to bid/ask
+                            if is_entry:
+                                # Selling, so move closer to bid (lower)
+                                adjustment = (mid_price - asset_data["hl_best_bid"]) * (attempt / max_retries)
+                                limit_price = mid_price - adjustment
+                            else:
+                                # Buying, so move closer to ask (higher)
+                                adjustment = (asset_data["hl_best_ask"] - mid_price) * (attempt / max_retries)
+                                limit_price = mid_price + adjustment
+                                
+                        # Round to appropriate precision
+                        limit_price = round(limit_price, asset_data["price_precision"])
+                        
+                        self.logger.info(f"{asset} Placing Hyperliquid {side} LIMIT order: Size={position_size} at ${limit_price}")
+                        order_response = self.hl_exchange.order(
+                            asset,
+                            not is_entry,  # is_buy (False for entry/sell, True for exit/buy)
+                            position_size,
+                            limit_price,
+                            {"limit": {"tif": "Gtc"}}  # Good-till-cancelled limit order
+                        )
+                        
+                        # Check response
+                        if order_response and 'status' in order_response and order_response['status'] == 'success':
+                            # Extract order ID from the response
+                            order_info = order_response.get('data', {}).get('orderInfo', {})
+                            asset_data["current_hl_order_id"] = order_info.get('orderId')
+                            
+                            self.logger.info(f"{asset} Placed Hyperliquid {side} order: Size={position_size} at ${limit_price}")
+                            
+                            # Wait for fill
+                            fill_status, filled_size = self.wait_for_hl_fill(asset)
+                            
+                            if fill_status:
+                                # Verify position after fill
+                                actual_size = self.verify_hl_position(asset, is_entry)
+                                
+                                if actual_size is not None:
+                                    return True, actual_size
+                            else:
+                                # Cancel if not filled
+                                self.cancel_hl_order(asset)
+                                
+                                # Check if we need to retry with more aggressive price
+                                if attempt < max_retries - 1:
+                                    self.logger.info(f"{asset} Order not filled, retrying with more aggressive price...")
+                                    time.sleep(1)
+                        else:
+                            self.logger.error(f"{asset} Error placing HL limit order: {order_response}")
+                except Exception as e:
+                    self.logger.error(f"Error placing Hyperliquid order for {asset} (attempt {attempt+1}): {e}")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                        
+            return False, 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error in Hyperliquid order placement for {asset}: {e}")
+            return False, 0.0
+    
+    def verify_hl_position(self, asset: str, is_entry: bool) -> Optional[float]:
+        """
+        Verify Hyperliquid position was created with expected size
+        
+        Args:
+            asset: Asset symbol
+            is_entry: True for entry (short), False for exit (flat)
+            
+        Returns:
+            Actual position size if successful, None if verification failed
+        """
+        try:
+            # Get current positions
+            position_size = self.get_hl_position_size(asset)
+            
+            if position_size is None:
+                self.logger.error(f"Failed to retrieve Hyperliquid position for {asset}")
+                return None
+                
+            if is_entry and position_size < 0:
+                # Short position (negative size)
+                self.logger.info(f"Verified {asset} HL short position: {abs(position_size)}")
+                return abs(position_size)
+            elif not is_entry and abs(position_size) < 0.001:
+                # Flat position (zero or very small)
+                self.logger.info(f"Verified {asset} HL position closed")
+                return 0.0
+                
+            # Position not found or incorrect direction
+            if is_entry:
+                self.logger.error(f"Failed to verify HL short position for {asset}")
+            else:
+                self.logger.error(f"Failed to verify HL position closure for {asset}")
+                
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error verifying HL position for {asset}: {e}")
+            return None
+    
+    def place_kraken_order(self, asset: str, is_entry: bool, position_size: Optional[float] = None) -> Tuple[bool, float]:
+        """
+        Place order on Kraken with rate limiting
+        
+        Args:
+            asset: Asset symbol
+            is_entry: True for entry (buy), False for exit (sell)
+            position_size: Optional size override, uses calculated size if None
+            
+        Returns:
+            Tuple of (success status, order size)
+        """
+        try:
+            asset_data = self.assets[asset]
+            side = "buy" if is_entry else "sell"
+            
+            self.update_kraken_prices(asset)
+            
+            if not all([asset_data["kraken_best_bid"], asset_data["kraken_best_ask"]]):
+                self.logger.error(f"{asset} No valid prices available for Kraken order")
+                return False, 0.0
+                
+            # FIX #2: Dynamic slippage based on volatility
+            slippage_factor = self.get_recent_volatility(asset)
+            self.logger.info(f"{asset} Using dynamic slippage factor for Kraken: {slippage_factor:.4f}%")
+            
+            # Determine volume to trade
+            if position_size is not None:
+                # Use provided position size
+                volume = position_size
+            else:
+                # Calculate size for entry
+                if is_entry:
+                    volume = self.calculate_position_size(
+                        asset, asset_data["kraken_best_ask"] * (1 + slippage_factor)
+                    )
+                else:
+                    # Use actual position size for exit
+                    volume = asset_data["kraken_position_size"]
+                    
+            # Ensure volume is valid
+            if volume <= 0:
+                self.logger.error(f"{asset} Invalid Kraken order volume: {volume}")
+                return False, 0.0
+                
+            # Set price with slippage
+            if is_entry:
+                # Buying, so use ask with premium
+                price = asset_data["kraken_best_ask"] * (1 + slippage_factor)
+            else:
+                # Selling, so use bid with discount
+                price = asset_data["kraken_best_bid"] * (1 - slippage_factor)
+                
+            # Format price and volume based on asset precision
+            if asset == "BTC":
+                price_str = str(round(price, 1))  # Format price to 1 decimal place for BTC/USD
+                volume_str = str(round(volume, 8))  # Format volume to 8 decimal places for BTC
+            else:
+                price_str = str(round(price, 2))  # Format price to 2 decimal places for other assets
+                volume_str = str(round(volume, 6))  # Format volume to 6 decimal places for other assets
+                
+            self.logger.info(f"{asset} Placing Kraken {side} order: {volume_str} at ${price_str}")
+            
+            for attempt in range(self.max_retries):
+                try:
+                    # Place limit order
+                    order_data = {
+                        "nonce": str(int(1000*time.time())),
+                        "ordertype": "limit",
+                        "type": side,
+                        "volume": volume_str,
+                        "pair": asset_data["kraken_pair"],
+                        "price": price_str
+                    }
+                    
+                    result = self.kraken_request('/0/private/AddOrder', order_data)
+                    
+                    if result.get('error'):
+                        self.logger.error(f"{asset} Kraken order error: {result['error']}")
+                        
+                        if attempt < self.max_retries - 1:
+                            time.sleep(2)  # Wait longer between retries
+                            
+                            # Update prices and adjust price for next attempt
+                            self.update_kraken_prices(asset)
+                            
+                            # Make more aggressive price adjustments on retry
+                            if is_entry:
+                                # For buy orders, increase price to improve fill probability
+                                adjustment = (asset_data["kraken_best_ask"] - price) * (attempt + 1) / self.max_retries
+                                price = price + adjustment
+                            else:
+                                # For sell orders, decrease price to improve fill probability
+                                adjustment = (price - asset_data["kraken_best_bid"]) * (attempt + 1) / self.max_retries
+                                price = price - adjustment
+                                
+                            # Format price based on asset precision
+                            if asset == "BTC":
+                                price_str = str(round(price, 1))
+                            else:
+                                price_str = str(round(price, 2))
+                                
+                            continue
+                            
+                    if 'result' in result and 'txid' in result['result']:
+                        asset_data["current_kraken_order_id"] = result['result']['txid'][0]
+                        self.logger.info(f"{asset} Kraken order placed: {side} {volume_str} at ${price_str}")
+                        
+                        # Wait for fill
+                        fill_status, filled_volume = self.wait_for_kraken_fill(asset)
+                        
+                        if fill_status and filled_volume > 0:
+                            # FIX #1: Return actual filled volume, not requested volume
+                            return True, filled_volume
+                        else:
+                            # Cancel if not filled
+                            self.cancel_kraken_order(asset)
+                except Exception as e:
+                    self.logger.error(f"Error placing Kraken order for {asset} (attempt {attempt+1}): {e}")
+                    
+                    if attempt < self.max_retries - 1:
+                        time.sleep(2)  # Wait longer between retries
+                        
+            return False, 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error in Kraken order placement for {asset}: {e}")
+            return False, 0.0
+    
+    def wait_for_kraken_fill(self, asset: str) -> Tuple[bool, float]:
+        """
+        Wait for Kraken order to fill with rate limited checks
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            Tuple of (fill status, filled volume)
+        """
+        asset_data = self.assets[asset]
+        start_time = time.time()
+        last_check_time = 0
+        
+        while time.time() - start_time < self.order_timeout:
+            try:
+                # Only check at the specified interval to avoid rate limits
+                current_time = time.time()
+                if current_time - last_check_time < self.kraken_order_check_interval:
+                    time.sleep(0.5)  # Small sleep to prevent tight loop
+                    continue
+                    
+                last_check_time = current_time
+                
+                fill_info = self.get_kraken_order_fill_info(asset)
+                
+                if not fill_info:
+                    time.sleep(self.kraken_order_check_interval)
+                    continue
+                    
+                status = fill_info.get('status')
+                filled_vol = float(fill_info.get('vol_exec', 0))
+                fill_percent = fill_info.get('fill_percent', 0)
+                
+                # Log progress for partial fills
+                if fill_percent > 0 and fill_percent < 100:
+                    self.logger.info(f"{asset} Kraken order {fill_percent:.1f}% filled ({filled_vol} / {fill_info.get('vol', 0)})")
+                    
+                if status == 'closed':
+                    self.logger.info(f"{asset} Kraken order filled: {filled_vol}")
+                    return True, filled_vol
+                    
+                time.sleep(self.kraken_order_check_interval)
+                
+            except Exception as e:
+                if 'Rate limit exceeded' in str(e):
+                    self.logger.warning(f"{asset} Rate limit hit during order check, waiting longer...")
+                    time.sleep(5)  # Wait longer on rate limit errors
+                else:
+                    self.logger.error(f"Error checking Kraken order status for {asset}: {e}")
+                
+                time.sleep(self.kraken_order_check_interval)
+                
+        self.logger.warning(f"{asset} Kraken order timeout after {self.order_timeout} seconds")
+        
+        # Check one final time to see if it filled
+        try:
+            fill_info = self.get_kraken_order_fill_info(asset)
+            if fill_info and fill_info.get('status') == 'closed':
+                filled_vol = float(fill_info.get('vol_exec', 0))
+                self.logger.info(f"{asset} Kraken order filled after timeout: {filled_vol}")
+                return True, filled_vol
+        except Exception:
+            pass
+            
+        return False, 0.0
+    
+    def get_kraken_order_fill_info(self, asset: str) -> Optional[Dict[str, Any]]:
+        """
+        Get comprehensive Kraken order fill information with rate limiting
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            Dict with order details or None if error
+        """
+        try:
+            asset_data = self.assets[asset]
+            
+            if not asset_data["current_kraken_order_id"]:
+                return None
+                
+            # Enforce rate limit
+            self.enforce_kraken_rate_limit()
+            
+            data = {
+                "nonce": str(int(1000*time.time())),
+                "txid": asset_data["current_kraken_order_id"]
+            }
+            
+            result = self.kraken_request('/0/private/QueryOrders', data)
+            
+            if result.get('error'):
+                self.logger.error(f"Error querying Kraken order for {asset}: {result['error']}")
+                return None
+                
+            if 'result' in result and asset_data["current_kraken_order_id"] in result['result']:
+                order = result['result'][asset_data["current_kraken_order_id"]]
+                
+                vol = float(order.get('vol', 0))
+                vol_exec = float(order.get('vol_exec', 0))
+                
+                return {
+                    'status': order.get('status'),
+                    'vol': vol,
+                    'vol_exec': vol_exec,
+                    'fill_percent': (vol_exec / vol * 100) if vol > 0 else 0,
+                    'price': float(order.get('price', 0))
+                }
+                
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error getting Kraken order fill info for {asset}: {e}")
+            return None
+    
+    def wait_for_hl_fill(self, asset: str) -> Tuple[bool, float]:
+        """
+        Wait for Hyperliquid order to fill with detailed status tracking
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            Tuple of (fill status, filled size)
+        """
+        asset_data = self.assets[asset]
+        start_time = time.time()
+        last_check_time = 0
+        
+        # Use a slightly faster check interval for Hyperliquid since it doesn't have the same rate limits
+        hl_check_interval = 1.5  # 1.5 seconds between checks
+        
+        while time.time() - start_time < self.order_timeout:
+            try:
+                # Only check at the specified interval to avoid excessive API calls
+                current_time = time.time()
+                if current_time - last_check_time < hl_check_interval:
+                    time.sleep(0.5)  # Small sleep to prevent tight loop
+                    continue
+                    
+                last_check_time = current_time
+                
+                if not asset_data["current_hl_order_id"]:
+                    return False, 0.0
+                    
+                # Get order status
+                order_status = self.hl_exchange.get_order_status(asset_data["current_hl_order_id"])
+                
+                if not order_status:
+                    time.sleep(hl_check_interval)
+                    continue
+                    
+                status = order_status.get('status')
+                filled = float(order_status.get('filled', 0))
+                size = float(order_status.get('size', 1))  # Default to 1 to avoid division by zero
+                fill_percent = (filled / size) * 100 if size else 0
+                
+                # Check if order is filled
+                if status == 'filled':
+                    self.logger.info(f"{asset} Hyperliquid order filled: {filled}")
+                    return True, filled
+                    
+                # If order is partially filled, log progress
+                if status == 'open' and fill_percent > 0:
+                    self.logger.info(f"{asset} Hyperliquid order {fill_percent:.1f}% filled ({filled}/{size})")
+                    
+                time.sleep(hl_check_interval)
+                
+            except Exception as e:
+                self.logger.error(f"Error checking Hyperliquid order status for {asset}: {e}")
+                time.sleep(hl_check_interval)
+                
+        self.logger.warning(f"{asset} Hyperliquid order timeout after {self.order_timeout} seconds")
+        
+        # Check one final time to see if it filled
+        try:
+            order_status = self.hl_exchange.get_order_status(asset_data["current_hl_order_id"])
+            if order_status and order_status.get('status') == 'filled':
+                filled = float(order_status.get('filled', 0))
+                self.logger.info(f"{asset} Hyperliquid order filled after timeout: {filled}")
+                return True, filled
+        except Exception:
+            pass
+            
+        return False, 0.0
+    
+    def cancel_hl_order(self, asset: str) -> bool:
+        """
+        Cancel Hyperliquid order
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            asset_data = self.assets[asset]
+            
+            if not asset_data["current_hl_order_id"]:
+                return False
+                
+            cancel_response = self.hl_exchange.cancel_order(asset_data["current_hl_order_id"])
+            
+            if cancel_response and cancel_response.get('status') == 'success':
+                self.logger.info(f"{asset} Cancelled Hyperliquid order {asset_data['current_hl_order_id']}")
+                asset_data["current_hl_order_id"] = None
+                return True
+            else:
+                self.logger.error(f"{asset} Failed to cancel Hyperliquid order: {cancel_response}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error cancelling Hyperliquid order for {asset}: {e}")
+            return False
+    
+    def cancel_kraken_order(self, asset: str) -> bool:
+        """
+        Cancel Kraken order with rate limiting
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            asset_data = self.assets[asset]
+            
+            if not asset_data["current_kraken_order_id"]:
+                return False
+                
+            # Enforce rate limit
+            self.enforce_kraken_rate_limit()
+            
+            data = {
+                "nonce": str(int(1000*time.time())),
+                "txid": asset_data["current_kraken_order_id"]
+            }
+            
+            result = self.kraken_request('/0/private/CancelOrder', data)
+            
+            if not result.get('error'):
+                self.logger.info(f"{asset} Cancelled Kraken order {asset_data['current_kraken_order_id']}")
+                asset_data["current_kraken_order_id"] = None
+                return True
+            else:
+                self.logger.error(f"{asset} Failed to cancel Kraken order: {result.get('error')}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error cancelling Kraken order for {asset}: {e}")
+            return False
+    
+    def close_hl_position(self, asset: str) -> bool:
+        """
+        Emergency close Hyperliquid position
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            asset_data = self.assets[asset]
+            
+            # Cancel any open orders first
+            if asset_data["current_hl_order_id"]:
+                self.cancel_hl_order(asset)
+                
+            # Get current position size
+            position_size = self.get_hl_position_size(asset)
+            
+            if position_size is None or abs(position_size) < 0.001:
+                self.logger.info(f"{asset} No Hyperliquid position to close")
+                return True
+                
+            # Place market order to close
+            self.logger.info(f"{asset} Emergency closing Hyperliquid position of {abs(position_size)}")
+            order_response = self.hl_exchange.order(
+                asset,
+                True,  # Buy to close short
+                abs(position_size),
+                None,  # Market order
+                {"market": {}}  # Market order type
+            )
+            
+            if order_response and order_response.get('status') == 'success':
+                self.logger.info(f"{asset} Emergency closed Hyperliquid position")
+                
+                # Wait for confirmation
+                time.sleep(2)
+                
+                # Verify position closed
+                new_size = self.get_hl_position_size(asset)
+                if new_size is None or abs(new_size) < 0.001:
+                    return True
+                else:
+                    self.logger.error(f"{asset} Failed to close entire position, remaining: {new_size}")
+                    return False
+            else:
+                self.logger.error(f"{asset} Failed to emergency close Hyperliquid position: {order_response}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error emergency closing Hyperliquid position for {asset}: {e}")
+            return False
+    
+    def get_hl_position_size(self, asset: str) -> Optional[float]:
+        """
+        Get current Hyperliquid position size
+        
+        Args:
+            asset: Asset symbol
+            
+        Returns:
+            Position size (negative for short), None if error
+        """
+        try:
+            # Call positions API endpoint
+            positions = self.hl_exchange.positions()
+            
+            if not positions or 'positions' not in positions:
+                self.logger.error(f"Failed to retrieve Hyperliquid positions for {asset}")
+                return None
+                
+            # Find position for our asset
+            for position in positions.get('positions', []):
+                if position.get('coin') == asset:
+                    size_value = position.get('szi', 0)
+                    
+                    # Convert size to float - negative for short position
+                    if isinstance(size_value, str):
+                        size = float(size_value)
+                    else:
+                        size = float(size_value)
+                        
+                    return size
+                    
+            # No position found
+            return 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error getting HL position size for {asset}: {e}")
+            return None
+    
+    def synchronize_positions(self, asset):
+        """Synchronize positions between exchanges"""
+        try:
+            # Get positions from both exchanges
+            kraken_pos = self.get_kraken_position(asset)
+            hl_pos = self.get_hl_position(asset)
+            
+            # Update active positions set
+            if kraken_pos or hl_pos:
+                self.active_positions.add(asset)
+            else:
+                self.active_positions.discard(asset)
+                
+            # Log position status
+            self.logger.info(f"Position sync for {asset}:")
+            self.logger.info(f"Kraken: {kraken_pos}")
+            self.logger.info(f"Hyperliquid: {hl_pos}")
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error synchronizing positions for {asset}: {str(e)}")
+            return False
+    
+    def run(self):
+        """Main bot loop"""
+        self.logger.info("Starting arbitrage bot...")
+        
+        # Initial setup
+        self.connect_websocket()
+        time.sleep(5)  # Wait for initial connection and data
+        
+        try:
+            while self.running:
+                try:
+                    # Use execute_with_cooldown for error handling (Fix #5)
+                    self.execute_with_cooldown(self.check_conditions)
+                    
+                    # Update market data periodically for all assets
+                    for asset in self.assets:
+                        # Only process selected tokens
+                        if hasattr(self, 'selected_tokens') and self.selected_tokens and asset in self.selected_tokens:
+                            self.execute_with_cooldown(self.update_kraken_prices, asset)
+                        
+                    # Periodically check if positions are synchronized - but at a slow rate to avoid API limits
+                    current_time = time.time()
+                    for asset in self.assets:
+                        # Only process selected tokens
+                        if hasattr(self, 'selected_tokens') and self.selected_tokens and asset in self.selected_tokens:
+                            asset_data = self.assets[asset]
+                            if asset_data["in_position"] and current_time % 600 < 1:  # Every ~10 minutes
+                                self.execute_with_cooldown(self.synchronize_positions, asset)
+                            
+                    # Log current state periodically
+                    if current_time - self.last_prediction_check_time >= 30:  # Log every 30 seconds
+                        self.last_prediction_check_time = current_time
+                        current_dt = datetime.now(self.est_tz)
+                        self.logger.info(f"Current Time: {current_dt.strftime('%Y-%m-%d %H:%M:%S')} EST")
+                        
+                        # Only log information for selected tokens
+                        for asset in self.assets:
+                            # Skip assets not selected
+                            if not hasattr(self, 'selected_tokens') or not self.selected_tokens or asset not in self.selected_tokens:
+                                continue
+                                
+                            asset_data = self.assets[asset]
+                            
+                            # Log current funding rate - check multiple sources
+                            if asset in self.last_funding_rates and self.last_funding_rates[asset] is not None:
+                                current_rate = self.last_funding_rates[asset]
+                                self.logger.info(f"{asset} Current Funding Rate: {current_rate:.4f}%")
+                            elif asset_data["ws_funding_rate"] is not None:
+                                current_rate = asset_data["ws_funding_rate"] * 100
+                                self.logger.info(f"{asset} Current Funding Rate: {current_rate:.4f}%")
+                            
+                            # Log predicted rate if available
+                            if asset_data["ws_predicted_rate"] is not None:
+                                predicted_rate = asset_data["ws_predicted_rate"] * 100
+                                self.logger.info(f"{asset} Predicted Rate: {predicted_rate:.4f}%")
+                                
+                            # Log position status if in position
+                            if asset_data["in_position"]:
+                                self.logger.info(f"{asset} In Position: HL={asset_data['hl_position_size']}, Kraken={asset_data['kraken_position_size']}")
+                                
+                            # Check minute for timing reference
+                            current_minute = datetime.now().minute
+                            self.logger.info(f"{asset} Current minute: {current_minute} (Exit threshold: {60 - self.exit_time_threshold})")
+                            
+                            # Log current percentile vs threshold to show entry conditions
+                            if asset in self.last_percentiles:
+                                current_percentile = self.last_percentiles[asset]
+                                entry_threshold = self.entry_percentiles.get(self.entry_strategy, 60)
+                                self.logger.info(f"{asset} Current percentile: {current_percentile:.4f}% vs threshold {entry_threshold:.4f}%")
+                            
+                    # Sleep to prevent CPU spinning
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in main loop: {e}")
+                    time.sleep(self.error_cooldown)
+                    
+        except KeyboardInterrupt:
+            self.logger.info("Shutting down bot...")
+            self.running = False
+            
+            # Exit all positions
+            for asset in self.assets:
+                asset_data = self.assets[asset]
+                if asset_data["in_position"]:
+                    self.logger.warning(f"{asset} Bot shutdown requested while in position!")
+                    self.exit_positions(asset)
+                    
+        finally:
+            if self.ws:
+                self.ws.close()
+                
+            self.logger.info("Bot shutdown complete")
+
+    def shutdown(self):
+        """
+        Gracefully shut down the bot and release all resources
+        """
+        try:
+            self.logger.info("Shutting down bot...")
+            
+            # Set running flag to False to stop all threads
+            self.running = False
+            self.ws_running = False
+            
+            # Close WebSocket connection if it's open
+            if hasattr(self, 'ws') and self.ws:
+                self.logger.info("Closing WebSocket connection...")
+                try:
+                    self.ws.close()
+                except Exception as e:
+                    self.logger.error(f"Error closing WebSocket: {e}")
+            
+            # Wait for threads to finish
+            if hasattr(self, 'ws_thread') and self.ws_thread and self.ws_thread.is_alive():
+                self.logger.info("Waiting for WebSocket thread to finish...")
+                self.ws_thread.join(timeout=5)
+                
+            if hasattr(self, 'ws_message_processor') and self.ws_message_processor and self.ws_message_processor.is_alive():
+                self.logger.info("Waiting for message processor thread to finish...")
+                self.ws_message_processor.join(timeout=5)
+            
+            # Close any other resources
+            if hasattr(self, 'thread_pool') and self.thread_pool:
+                self.logger.info("Shutting down thread pool...")
+                self.thread_pool.shutdown(wait=True)
+            
+            self.logger.info("Bot shutdown complete")
+            
+        except Exception as e:
+            self.logger.error(f"Error during shutdown: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+        finally:
+            # Make sure logging handlers are closed
+            for handler in self.logger.handlers:
+                handler.close()
+                self.logger.removeHandler(handler)
+
+    def kraken_request(self, uri_path, data=None):
+        """
+        Send authenticated request to Kraken API
+        
+        Args:
+            uri_path: API endpoint path
+            data: Request data
+            
+        Returns:
+            API response data
+        """
+        try:
+            if data is None:
+                data = {}
+                
+            # Add nonce to request data
+            data['nonce'] = int(time.time() * 1000)
+            
+            # Encode data for API request
+            post_data = urllib.parse.urlencode(data)
+            encoded_data = (str(data['nonce']) + post_data).encode()
+            
+            # Generate API signature
+            signature = hmac.new(
+                base64.b64decode(self.kraken_api_secret),
+                uri_path.encode() + encoded_data,
+                hashlib.sha256
+            ).digest()
+            
+            # Set request headers
+            headers = {
+                'API-Key': self.kraken_api_key,
+                'API-Sign': base64.b64encode(signature).decode(),
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            # Send request to API
+            kraken_api_url = "https://api.kraken.com"
+            response = requests.post(
+                kraken_api_url + uri_path,
+                headers=headers,
+                data=post_data
+            )
+            
+            # Check for HTTP errors
+            response.raise_for_status()
+            
+            # Parse response JSON
+            result = response.json()
+            
+            # Check for API errors
+            if result.get('error') and len(result['error']) > 0:
+                error_msg = ', '.join(result['error'])
+                self.logger.error(f"Kraken API error: {error_msg}")
+                raise Exception(f"Kraken API error: {error_msg}")
+                
+            # Return result data
+            return result.get('result', {})
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Kraken API request error: {e}")
+            raise
+        except Exception as e:
+            self.logger.error(f"Kraken API error: {e}")
+            raise
+
+    def get_kraken_position(self, ticker=None):
+        """
+        Get current position information from Kraken
+        
+        Args:
+            ticker: Optional ticker symbol to filter positions
+            
+        Returns:
+            Dictionary of position information
+        """
+        try:
+            # Call Kraken API to get open positions
+            positions = self.kraken_request('/0/private/OpenPositions')
+            
+            if not positions:
+                self.logger.debug("No open positions found on Kraken")
+                return {}
+                
+            # Log all positions for debugging
+            self.logger.debug(f"Retrieved {len(positions)} open positions from Kraken")
+            
+            # Filter positions by ticker if provided
+            if ticker:
+                filtered_positions = {}
+                for pos_id, pos_data in positions.items():
+                    if ticker.lower() in pos_data.get('pair', '').lower():
+                        filtered_positions[pos_id] = pos_data
+                return filtered_positions
+            
+            return positions
+            
+        except Exception as e:
+            self.logger.error(f"Error getting Kraken positions: {e}")
+            return {}
+
+    def get_config_value(self, section, key, default=None):
+        """
+        Safely get a value from the config file
+        
+        Args:
+            section: Config section name
+            key: Config key name
+            default: Default value if section/key doesn't exist
+            
+        Returns:
+            Config value or default
+        """
+        try:
+            if not hasattr(self, 'config') or not self.config:
+                self.logger.warning(f"Config not initialized, returning default for {section}.{key}")
+                return default
+                
+            if not self.config.has_section(section):
+                self.logger.warning(f"Config section {section} not found, returning default for {key}")
+                return default
+                
+            if not self.config.has_option(section, key):
+                self.logger.warning(f"Config option {key} not found in section {section}, returning default")
+                return default
+                
+            return self.config.get(section, key)
+        except Exception as e:
+            self.logger.error(f"Error getting config value {section}.{key}: {e}")
+            return default
+
+    def calculate_position_size(self, asset: str, price: float) -> float:
+        """Calculate position size with appropriate precision
+        
+        Args:
+            asset: Asset symbol
+            price: Current price of the asset
+            
+        Returns:
+            Position size with appropriate precision
+        """
+        try:
+            # Get configured position size from asset data
+            asset_data = self.assets[asset]
+            position_size_usd = asset_data.get("position_size", 0)
+            
+            # Calculate raw size (USD / price)
+            raw_size = position_size_usd / price
+            
+            # Round to 6 decimal places (appropriate for most cryptocurrencies)
+            return round(raw_size, 6)
+        except Exception as e:
+            self.logger.error(f"Error calculating position size for {asset}: {e}")
+            return 0.0
+
+    def check_conditions(self):
+        """
+        Check trading conditions for all assets
+        
+        This method checks both entry and exit conditions for all active assets,
+        handling multiple assets simultaneously based on selected tokens.
+        """
+        try:
+            # Process only selected tokens if specified
+            assets_to_check = self.selected_tokens if hasattr(self, 'selected_tokens') and self.selected_tokens else self.assets.keys()
+            
+            for asset in assets_to_check:
+                asset_data = self.assets.get(asset, {})
+                
+                # Check entry or exit conditions based on current position status
+                if asset_data.get("in_position", False):
+                    self.check_exit_conditions(asset)
+                else:
+                    self.check_entry_conditions(asset)
+                
+        except Exception as e:
+            self.logger.error(f"Error in check_conditions: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+
+
+class Tier1Bot(ArbBotBase):
+    """Tier 1 bot for arbitrage trading"""
+    
+    def __init__(self, user_id=None, tokens=None, config_file=None):
+        # Basic initialization
+        self.config_path = config_file
+        self.user_id = user_id or "default"
+        self.est_tz = pytz.timezone('US/Eastern')
+        
+        # Ensure valid tokens
+        self.tokens = tokens or ["BTC"]
+        # Validate tokens - ensure they're not numbers
+        if all(isinstance(token, int) or (isinstance(token, str) and token.isdigit()) for token in self.tokens):
+            self.tokens = ["BTC"]  # Default to BTC if all tokens are numeric
+        
+        # Set up our own logging instead of relying on parent
+        self.setup_logging_tier1()
+        
+        # Initialize API credentials directly
+        self.load_tier1_credentials()
+        
+        # Now we can continue with the rest of initialization
+        self.ws_message_queue = queue.Queue()
+        self.ws_running = True
+        self.ws_url = "wss://api.hyperliquid.xyz/ws"
+        
+        # Initialize with parent class
+        super().__init__(config_path=config_file, user_id=user_id)
+        
+        # Override selected_tokens with the tokens provided
+        self.selected_tokens = self.tokens
+        
+        # Initialize assets dictionary for selected tokens
+        self.assets = {}
+        for asset in self.tokens:
+            self.assets[asset] = {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "limit" if asset != "HPOS" else "market",
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": "XXBTZUSD" if asset == "BTC" else f"{asset}USD",  # Default Kraken pair
+                "price_precision": 1 if asset == "BTC" else 2,  # Price precision for orders
+            }
+            
+        # Initialize funding history
+        self.funding_history = {asset: [] for asset in self.tokens}
+    
+    def setup_logging_tier1(self):
+        """Setup logging configuration specifically for Tier1Bot"""
+        # Create a formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        
+        # Make sure we have a clean user_id for the log filename
+        safe_user_id = str(self.user_id).replace('/', '_').replace('\\', '_')
+        
+        # Setup file handler with rotation (10 MB max size, keep 5 backup logs)
+        log_filename = f'tier1_bot_{safe_user_id}.log'
+        file_handler = RotatingFileHandler(
+            log_filename,
+            maxBytes=10*1024*1024,  # 10 MB
+            backupCount=5
+        )
+        file_handler.setFormatter(formatter)
+        
+        # Setup console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        
+        # Setup logger
+        self.logger = logging.getLogger(f"tier1_bot_{safe_user_id}")
+        self.logger.setLevel(logging.INFO)
+        
+        # Clear existing handlers to avoid duplicates on reinit
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+            
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+        
+        self.logger.info(f"Tier1Bot logger initialized for user {safe_user_id}")
+    
+    def connect_websocket(self):
+        """Connect to Hyperliquid WebSocket for real-time data"""
+        try:
+            self.logger.info("Connecting to Hyperliquid WebSocket...")
+            # Create WebSocket connection
+            self.ws = websocket.WebSocketApp(
+                self.ws_url,
+                on_open=self.on_open,
+                on_message=self.on_message,
+                on_error=self.on_error,
+                on_close=self.on_close
+            )
+            # Start WebSocket connection in a separate thread
+            self.ws_thread = threading.Thread(target=self.ws.run_forever)
+            self.ws_thread.daemon = True
+            self.ws_thread.start()
+            self.logger.info("WebSocket connection thread started")
+        except Exception as e:
+            self.logger.error(f"Error connecting to WebSocket: {e}")
+            
+    def on_open(self, ws):
+        """WebSocket connection opened callback"""
+        self.logger.info("WebSocket connected")
+        try:
+            # Subscribe to updates for each asset
+            for asset in self.tokens:
+                subscription = {
+                    "method": "subscribe",
+                    "subscription": {
+                        "type": "activeAssetCtx"
+                    }
+                }
+                ws.send(json.dumps(subscription))
+                self.logger.info(f"Subscribed to {asset} updates")
+        except Exception as e:
+            self.logger.error(f"Error in WebSocket on_open: {e}")
+            
+    def on_message(self, ws, message):
+        """WebSocket message received callback"""
+        try:
+            # Put message in queue for processing
+            self.ws_message_queue.put(message)
+            self.logger.debug(f"WebSocket message queued for processing")
+        except Exception as e:
+            self.logger.error(f"Error in WebSocket on_message: {e}")
+            
+    def on_error(self, ws, error):
+        """WebSocket error callback"""
+        self.logger.error(f"WebSocket error: {error}")
+        
+    def on_close(self, ws, close_status_code, close_msg):
+        """WebSocket connection closed callback"""
+        self.logger.info(f"WebSocket connection closed: {close_status_code}, {close_msg}")
+        # Reconnect after a delay
+        time.sleep(5)
+        self.logger.info("Attempting to reconnect WebSocket...")
+        self.connect_websocket()
+    
+    def run(self):
+        """Main bot execution loop"""
+        try:
+            self.logger.info("Starting Tier1Bot run method")
+            
+            # Connect to WebSocket for real-time data
+            self.connect_websocket()
+            
+            # Start message processor thread
+            self.start_message_processor()
+            
+            # Main processing loop
+            while self.running:
+                try:
+                    # Check for entry/exit opportunities
+                    self.check_trading_conditions()
+                    
+                    # Sleep to avoid excessive CPU usage
+                    time.sleep(0.1)
+                except Exception as e:
+                    self.logger.error(f"Error in main loop: {e}")
+                    self.logger.error(traceback.format_exc())
+                    time.sleep(5)  # Sleep on error to avoid tight error loops
+            
+            self.logger.info("Tier1Bot run method completed")
+        except Exception as e:
+            self.logger.error(f"Fatal error in Tier1Bot.run: {e}")
+            self.logger.error(traceback.format_exc())
+            
+    def check_trading_conditions(self):
+        """Check for trading opportunities across all assets"""
+        for asset in self.tokens:
+            try:
+                # Check entry conditions if not in position
+                if not self.is_in_position(asset):
+                    self.check_entry_conditions(asset)
+                # Check exit conditions if in position
+                else:
+                    self.check_exit_conditions(asset)
+            except Exception as e:
+                self.logger.error(f"Error checking trading conditions for {asset}: {e}")
+                
+    def is_in_position(self, asset):
+        """Check if we have an open position for an asset"""
+        try:
+            # Get positions from exchanges
+            hl_position = self.get_hyperliquid_position(asset)
+            kraken_position = self.get_kraken_position(asset)
+            
+            # Consider in position if either exchange has a position
+            return (hl_position and abs(hl_position) > 0) or (kraken_position and len(kraken_position) > 0)
+        except Exception as e:
+            self.logger.error(f"Error checking position status for {asset}: {e}")
+            return False
+            
+    def get_hyperliquid_position(self, asset):
+        """Get position information from Hyperliquid"""
+        try:
+            # Placeholder - implement actual Hyperliquid position retrieval
+            return 0
+        except Exception as e:
+            self.logger.error(f"Error getting Hyperliquid position for {asset}: {e}")
+            return 0
+            
+    def check_entry_conditions(self, asset):
+        """Check if entry conditions are met for an asset"""
+        try:
+            # Get current funding rate
+            current_rate = self.get_current_funding_rate(asset)
+            
+            # Get historical threshold
+            threshold = self.get_entry_threshold(asset)
+            
+            # Log comparison for debugging
+            self.logger.debug(f"{asset} entry check: Current rate {current_rate:.6f}% vs Threshold {threshold:.6f}%")
+            
+            # Check if current rate exceeds threshold
+            if current_rate > threshold:
+                self.logger.info(f"Entry conditions met for {asset}: Rate {current_rate:.6f}% > Threshold {threshold:.6f}%")
+                # Execute entry logic would go here
+        except Exception as e:
+            self.logger.error(f"Error checking entry conditions for {asset}: {e}")
+            
+    def check_exit_conditions(self, asset):
+        """Check if exit conditions are met for an asset"""
+        try:
+            # Get current funding rate
+            current_rate = self.get_current_funding_rate(asset)
+            
+            # Get historical threshold
+            threshold = self.get_exit_threshold(asset)
+            
+            # Log comparison for debugging
+            self.logger.debug(f"{asset} exit check: Current rate {current_rate:.6f}% vs Threshold {threshold:.6f}%")
+            
+            # Check if current rate falls below threshold
+            if current_rate < threshold:
+                self.logger.info(f"Exit conditions met for {asset}: Rate {current_rate:.6f}% < Threshold {threshold:.6f}%")
+                # Execute exit logic would go here
+        except Exception as e:
+            self.logger.error(f"Error checking exit conditions for {asset}: {e}")
+            
+    def get_current_funding_rate(self, asset):
+        """Get the current funding rate for an asset"""
+        try:
+            # First try to get from WebSocket data
+            if asset in self.last_funding_rates:
+                return self.last_funding_rates[asset]
+                
+            # Fallback to API if WebSocket data not available
+            # Placeholder for actual API call
+            self.logger.warning(f"No WebSocket funding rate for {asset}, using fallback API method")
+            return 0.0
+        except Exception as e:
+            self.logger.error(f"Error getting current funding rate for {asset}: {e}")
+            return 0.0
+            
+    def get_entry_threshold(self, asset):
+        """Get the entry threshold for an asset (60th percentile)"""
+        try:
+            # Use historical percentiles if calculated
+            if asset in self.historical_percentiles and '60' in self.historical_percentiles[asset]:
+                return self.historical_percentiles[asset]['60']
+                
+            # Default threshold if not calculated yet
+            self.logger.warning(f"No historical percentiles for {asset}, using default entry threshold")
+            return 0.005  # 0.5% default
+        except Exception as e:
+            self.logger.error(f"Error getting entry threshold for {asset}: {e}")
+            return 0.005
+            
+    def get_exit_threshold(self, asset):
+        """Get the exit threshold for an asset (50th percentile)"""
+        try:
+            # Use historical percentiles if calculated
+            if asset in self.historical_percentiles and '50' in self.historical_percentiles[asset]:
+                return self.historical_percentiles[asset]['50']
+                
+            # Default threshold if not calculated yet
+            self.logger.warning(f"No historical percentiles for {asset}, using default exit threshold")
+            return 0.002  # 0.2% default
+        except Exception as e:
+            self.logger.error(f"Error getting exit threshold for {asset}: {e}")
+            return 0.002
+
+    def load_tier1_credentials(self):
+        """Load API credentials specifically for Tier1Bot"""
+        try:
+            self.logger.info("Loading credentials for Tier1Bot")
+            
+            # Initialize credentials with empty values
+            self.kraken_api_key = ""
+            self.kraken_api_secret = ""
+            self.hyperliquid_private_key = ""
+            
+            # Load from config file if it exists
+            if self.config_path and os.path.exists(self.config_path):
+                config = configparser.ConfigParser()
+                config.read(self.config_path)
+                
+                if config.has_section('credentials'):
+                    # Kraken credentials
+                    if config.has_option('credentials', 'kraken_api_key'):
+                        self.kraken_api_key = config.get('credentials', 'kraken_api_key')
+                    
+                    if config.has_option('credentials', 'kraken_api_secret'):
+                        self.kraken_api_secret = config.get('credentials', 'kraken_api_secret')
+                    
+                    # Hyperliquid credentials
+                    if config.has_option('credentials', 'hyperliquid_private_key'):
+                        self.hyperliquid_private_key = config.get('credentials', 'hyperliquid_private_key')
+            
+            self.logger.info("Credentials loaded for Tier1Bot")
+            
+        except Exception as e:
+            self.logger.error(f"Error loading credentials for Tier1Bot: {e}")
+
+
+class Tier2Bot(ArbBotBase):
+    """Tier 2 bot - Arbitrage trading with two selected tokens"""
+    
+    def __init__(self, config_path=None, user_id=None):
+        super().__init__(config_path, user_id)
+        
+        # Set the tier level
+        self.tier = 2
+        
+        # Allow user to select exactly 2 tokens
+        self.max_tokens = 2
+        
+        # Default to BTC and ETH if no selection is made
+        self.default_tokens = ["BTC", "ETH"]
+        
+        # Initialize with default tokens first
+        self.selected_tokens = self.default_tokens[:2]
+        
+        # Initialize the bot
+        self.initialize()
+    
+    def select_tokens(self, tokens):
+        """
+        Select which tokens to trade (limited to exactly 2 tokens)
+        
+        Args:
+            tokens: List of token symbols to trade
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Validate token selection
+            if not tokens or len(tokens) != 2:
+                self.logger.error(f"Invalid token selection for Tier 2 - must select exactly 2 tokens, got {len(tokens) if tokens else 0}")
+                return False
+            
+            # Validate all tokens exist in assets
+            for token in tokens:
+                if token not in self.assets:
+                    self.logger.error(f"Invalid token selected: {token}")
+                    return False
+            
+            # Set the tokens and calculate historical percentiles
+            self.selected_tokens = tokens
+            self.logger.info(f"Trading enabled for selected tokens: {', '.join(self.selected_tokens)}")
+            
+            # Calculate historical percentiles for selected tokens
+            self.logger.info("Calculating historical percentiles for selected tokens...")
+            for asset in self.selected_tokens:
+                success = self.calculate_historical_percentile(asset)
+                if success:
+                    self.logger.info(f"Successfully calculated historical percentiles for {asset}")
+                else:
+                    self.logger.error(f"Failed to calculate historical percentiles for {asset}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error selecting tokens: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+    
+    def run(self):
+        """Main bot loop"""
+        self.logger.info("Starting Tier 2 arbitrage bot...")
+        
+        # Validate token selection
+        if len(self.selected_tokens) != 2:
+            self.logger.error(f"Invalid number of tokens selected for Tier 2: {len(self.selected_tokens)}. Must be exactly 2.")
+            return
+        
+        self.logger.info(f"Trading with selected tokens: {', '.join(self.selected_tokens)}")
+        
+        # Connect to WebSocket
+        self.connect_websocket()
+        time.sleep(5)  # Wait for initial connection and data
+        
+        try:
+            while self.running:
+                try:
+                    # Use execute_with_cooldown for error handling
+                    self.execute_with_cooldown(self.check_conditions)
+                    
+                    # Update market data periodically for all assets
+                    for asset in self.selected_tokens:
+                        self.execute_with_cooldown(self.update_kraken_prices, asset)
+                    
+                    # Periodically check if positions are synchronized
+                    current_time = time.time()
+                    for asset in self.selected_tokens:
+                        asset_data = self.assets[asset]
+                        if asset_data["in_position"] and current_time % 600 < 1:  # Every ~10 minutes
+                            self.execute_with_cooldown(self.synchronize_positions, asset)
+                    
+                    # Log current state periodically
+                    if current_time - self.last_prediction_check_time >= 30:  # Log every 30 seconds
+                        self.last_prediction_check_time = current_time
+                        current_dt = datetime.now(self.est_tz)
+                        self.logger.info(f"Current Time: {current_dt.strftime('%Y-%m-%d %H:%M:%S')} EST")
+                        
+                        # Log information for selected tokens
+                        for asset in self.selected_tokens:
+                            asset_data = self.assets[asset]
+                            
+                            # Log current funding rate
+                            if asset in self.last_funding_rates and self.last_funding_rates[asset] is not None:
+                                current_rate = self.last_funding_rates[asset]
+                                self.logger.info(f"{asset} Current Funding Rate: {current_rate:.4f}%")
+                            elif asset_data["ws_funding_rate"] is not None:
+                                current_rate = asset_data["ws_funding_rate"] * 100
+                                self.logger.info(f"{asset} Current Funding Rate: {current_rate:.4f}%")
+                            
+                            # Log predicted rate if available
+                            if asset_data["ws_predicted_rate"] is not None:
+                                predicted_rate = asset_data["ws_predicted_rate"] * 100
+                                self.logger.info(f"{asset} Predicted Rate: {predicted_rate:.4f}%")
+                                
+                            # Log position status if in position
+                            if asset_data["in_position"]:
+                                self.logger.info(f"{asset} In Position: HL={asset_data['hl_position_size']}, Kraken={asset_data['kraken_position_size']}")
+                                
+                            # Check minute for timing reference
+                            current_minute = datetime.now().minute
+                            self.logger.info(f"{asset} Current minute: {current_minute} (Exit threshold: {60 - self.exit_time_threshold})")
+                            
+                            # Log current percentile vs threshold
+                            if asset in self.last_percentiles:
+                                current_percentile = self.last_percentiles[asset]
+                                entry_threshold = self.entry_percentiles.get(self.entry_strategy, 60)
+                                self.logger.info(f"{asset} Current percentile: {current_percentile:.4f}% vs threshold {entry_threshold:.4f}%")
+                    
+                    # Sleep to prevent CPU spinning
+                    time.sleep(1)
+                    
+                except Exception as e:
+                    self.logger.error(f"Error in main loop: {e}")
+                    time.sleep(self.error_cooldown)
+                    
+        except KeyboardInterrupt:
+            self.logger.info("Shutting down bot...")
+            self.running = False
+            
+            # Exit all positions
+            for asset in self.selected_tokens:
+                asset_data = self.assets[asset]
+                if asset_data["in_position"]:
+                    self.logger.warning(f"{asset} Bot shutdown requested while in position!")
+                    self.exit_positions(asset)
+                    
+        finally:
+            if self.ws:
+                self.ws.close()
+                
+            self.logger.info("Bot shutdown complete")
+
+
+class Tier3Bot(ArbBotBase):
+    """Tier 3 bot - Multi-asset arbitrage"""
+    
+    def __init__(self, config_path=None, user_id=None):
+        super().__init__(config_path, user_id)
+        self.tier = 3
+        self.max_positions = 5  # Allow up to 5 concurrent positions
+        
+        # By default, support all available tokens
+        self.supported_assets = ["HPOS", "BTC", "ETH", "BADGER", "HYPE"]
+        
+        # Set up asset configuration for all tokens - identical to Tier1Bot
+        # This is fine since we'll filter by selected_tokens in initialize()
+        self.assets = {
+            "HPOS": {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "market",  # Use market orders on Hyperliquid for HPOS
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": "HPOS10IUSD",  # Kraken pair for HPOS
+                "price_precision": 2,  # Price precision for orders
+            },
+            "BTC": {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BTC
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": "XXBTZUSD",  # Kraken pair for BTC
+                "price_precision": 1,  # Price precision for orders
+            },
+            "ETH": {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ETH
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": "XETHZUSD",  # Kraken pair for ETH
+                "price_precision": 2,  # Price precision for orders
+            },
+            "BADGER": {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BADGER
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": "BADGERUSD",  # Kraken pair for BADGER
+                "price_precision": 4,  # Price precision for orders
+            },
+            "HYPE": {
+                "position_size": 12.0,  # Total position size in USD
+                "margin_size": 4.0,  # Approximate margin required
+                "hl_order_type": "limit",  # Use limit orders on Hyperliquid for HYPE
+                "percentile_threshold": 60,  # Entry threshold percentile
+                "websocket_subscribed": False,  # Track subscription status per asset
+                "in_position": False,  # Track position status per asset
+                "hl_position_size": 0.0,  # Current HL position size
+                "kraken_position_size": 0.0,  # Current Kraken position size
+                "historical_rates": deque(maxlen=500),  # Historical funding rates
+                "percentile_60": None,  # 60th percentile threshold
+                "current_hl_order_id": None,  # Current HL order ID
+                "current_kraken_order_id": None,  # Current Kraken order ID
+                "hl_best_bid": None,  # Current HL best bid
+                "hl_best_ask": None,  # Current HL best ask
+                "kraken_best_bid": None,  # Current Kraken best bid
+                "kraken_best_ask": None,  # Current Kraken best ask
+                "ws_funding_rate": None,  # Current funding rate
+                "ws_predicted_rate": None,  # Predicted funding rate
+                "premium": None,  # Current premium
+                "oracle_px": None,  # Current oracle price
+                "kraken_pair": None,  # Special case: both spot and perp on Hyperliquid
+                "hyperliquid_spot": True,  # Flag indicating spot is on Hyperliquid
+                "price_precision": 4,  # Price precision for orders
+            }
+        }
+        
+        # Initialize the bot
+        self.initialize()
+
+    def on_message(self, ws, message):
+        """Handle incoming WebSocket messages"""
+        try:
+            # Debug log for message type
+            self.logger.debug(f"Received WebSocket message of type {type(message)}")
+            
+            # Log a preview of the message content for debugging
+            if isinstance(message, str) and len(message) > 0:
+                self.logger.debug(f"WebSocket message preview: {message[:200]}")
+            elif isinstance(message, (bytes, memoryview)):
+                try:
+                    decoded = message.tobytes() if isinstance(message, memoryview) else message
+                    decoded = decoded.decode('utf-8')
+                    self.logger.debug(f"Decoded binary message preview: {decoded[:200]}")
+                except:
+                    self.logger.debug(f"Received binary WebSocket message (unable to decode)")
+            
+            # Add the raw message to the queue for processing by the dedicated thread
+            self.ws_message_queue.put(message)
+        except Exception as e:
+            self.logger.error(f"Error handling WebSocket message: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def on_open(self, ws):
+        """Handle WebSocket connection open event"""
+        self.logger.info("WebSocket connected")
+        
+        # Wait a moment before subscribing to prevent subscription issues
+        time.sleep(1)
+        
+        # Subscribe to all assets using the activeAssetCtx format (most reliable)
+        for asset in self.assets:
+            if not self.assets[asset]["websocket_subscribed"]:
+                # Use exact subscription format for HyperLiquid activeAssetCtx
+                subscribe_msg = {
+                    "method": "subscribe",
+                    "subscription": {
+                        "type": "activeAssetCtx",
+                        "coin": asset
+                    }
+                }
+                ws.send(json.dumps(subscribe_msg))
+                self.logger.info(f"Subscribed to {asset} updates")
+                
+                # Mark as subscribed
+                self.assets[asset]["websocket_subscribed"] = True
+        
+        # Reset reconnect count on successful connection
+        self.ws_reconnect_count = 0
+
+    def check_entry_conditions(self, asset):
+        """
+        Check if entry conditions are met for the specified asset
+        Returns True if conditions are met, False otherwise
+        """
+        try:
+            # Skip if asset not in selected tokens
+            if not hasattr(self, 'selected_tokens') or not self.selected_tokens or asset not in self.selected_tokens:
+                self.logger.debug(f"Skipping {asset}: not in selected tokens {self.selected_tokens}")
+                return False
+            
+            # Get asset data
+            asset_data = self.assets[asset]
+            
+            # Skip if already in position
+            if asset_data["in_position"]:
+                self.logger.debug(f"Skipping {asset}: already in position")
+                return False
+                
+            # Skip if a flash crash cooldown is active
+            if self.is_flash_crash_cooldown_active(asset):
+                return False
+            
+            # Check if time is right (avoid entering close to funding time)
+            current_time = datetime.now(pytz.utc)
+            minutes_to_hour = (60 - current_time.minute) % 60
+            if minutes_to_hour < self.exit_time_threshold:
+                return False
+                
+            # Get current funding rate
+            current_funding_rate = self.get_current_funding_rate(asset)
+            
+            # Log all available percentiles for debugging
+            if asset in self.historical_percentiles:
+                self.logger.debug(f"All percentiles for {asset}: {self.historical_percentiles[asset]}")
+            
+            # Apply the selected entry strategy - ensure string key
+            entry_threshold = str(self.entry_percentiles.get(self.entry_strategy, 60))
+            
+            # Entry percentile threshold check - make sure we look up the string key
+            if asset in self.historical_percentiles:
+                # Use string key to access the dictionary
+                percentile_threshold = self.historical_percentiles[asset].get(entry_threshold)
+                
+                if percentile_threshold is not None:
+                    # Store current funding rate for logging
+                    self.last_percentiles[asset] = current_funding_rate
+                    
+                    # Log comparison values
+                    self.logger.info(f"Entry check for {asset}: Current rate {current_funding_rate:.8f}% vs {entry_threshold}th percentile {percentile_threshold:.8f}%")
+                    
+                    # Check entry condition - current rate exceeds the percentile threshold
+                    if current_funding_rate > percentile_threshold:
+                        self.logger.info(f"ENTRY CONDITION MET for {asset}: Current funding rate {current_funding_rate:.8f}% > {entry_threshold}th percentile {percentile_threshold:.8f}%")
+                        return True
+                    else:
+                        self.logger.debug(f"Entry condition not met for {asset}: {current_funding_rate:.8f}% <= {percentile_threshold:.8f}%")
+                else:
+                    self.logger.warning(f"No {entry_threshold}th percentile available for {asset} (key not found)")
+                    # Log all keys to help debug
+                    self.logger.debug(f"Available percentile keys: {list(self.historical_percentiles[asset].keys())}")
+            else:
+                self.logger.warning(f"No historical percentiles available for {asset}")
+            
+            # If volatility is too high, skip
+            volatility = self.get_recent_volatility(asset)
+            if volatility > self.max_volatility:
+                self.logger.info(f"Skipping {asset}: volatility {volatility:.4f} > {self.max_volatility:.4f}")
+                return False
+                
+            return False
+        except Exception as e:
+            self.logger.error(f"Error in check_entry_conditions: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+
+    def check_exit_conditions(self, asset: str):
+        """
+        Check if exit conditions are met for an asset
+        Returns True if conditions are met, False otherwise
+        """
+        try:
+            # Skip if asset not in selected tokens
+            if not hasattr(self, 'selected_tokens') or not self.selected_tokens or asset not in self.selected_tokens:
+                return False
+            
+            # Get asset data
+            asset_data = self.assets[asset]
+            
+            # Skip if not in a position
+            if not asset_data["in_position"]:
+                return False
+                
+            # Check if it's near the hour (funding time) - use UTC for consistency
+            current_time = datetime.now(pytz.utc)
+            minutes_to_hour = (60 - current_time.minute) % 60
+            
+            # Get current funding rate
+            current_funding_rate = self.get_current_funding_rate(asset)
+            
+            # Exit percentile threshold check - must convert to string key
+            exit_threshold = str(self.exit_percentiles.get(self.exit_strategy, 50))
+            if asset in self.historical_percentiles:
+                percentile_threshold = self.historical_percentiles[asset].get(exit_threshold)
+                
+                if percentile_threshold is not None:
+                    self.logger.debug(f"Exit check for {asset}: Current rate {current_funding_rate:.8f}% vs {exit_threshold}th percentile {percentile_threshold:.8f}%")
+                    
+                    # Check if we're in the exit window (close to funding time)
+                    if minutes_to_hour <= self.exit_time_threshold:
+                        self.logger.info(f"Exit window active for {asset}: {minutes_to_hour} minutes to hour")
+                        return True
+                    
+                    # Check if funding rate drops below exit threshold
+                    if current_funding_rate < percentile_threshold:
+                        self.logger.info(f"EXIT CONDITION MET for {asset}: Current rate {current_funding_rate:.8f}% < {exit_threshold}th percentile {percentile_threshold:.8f}%")
+                        return True
+                else:
+                    self.logger.warning(f"No {exit_threshold}th percentile available for {asset} (key not found)")
+                    self.logger.debug(f"Available percentile keys: {list(self.historical_percentiles[asset].keys())}")
+            else:
+                self.logger.warning(f"No historical percentiles available for {asset}")
+            
+            return False
+        except Exception as e:
+            self.logger.error(f"Error in check_exit_conditions: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False
+
+    def is_flash_crash_cooldown_active(self, asset):
+        """
+        Check if a flash crash cooldown is active for the specified asset
+        
+        Returns:
+            bool: True if cooldown is active, False otherwise
+        """
+        try:
+            # Check if asset exists in cooldowns dict
+            if asset not in self.flash_crash_cooldowns:
+                return False
+                
+            # Get the cooldown time
+            cooldown_time = self.flash_crash_cooldowns.get(asset, 0)
+            
+            # If no cooldown is set, return false
+            if cooldown_time == 0:
+                return False
+                
+            # Check if the cooldown has expired
+            current_time = time.time()
+            if current_time - cooldown_time >= self.flash_crash_cooldown_duration:
+                # Cooldown has expired, remove it
+                self.flash_crash_cooldowns.pop(asset, None)
+                self.logger.info(f"Flash crash cooldown expired for {asset}")
+                return False
+            
+            # Cooldown is still active
+            remaining_time = int(cooldown_time + self.flash_crash_cooldown_duration - current_time)
+            self.logger.info(f"Flash crash cooldown active for {asset}: {remaining_time} seconds remaining")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error checking flash crash cooldown: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            return False  # Default to false on error
