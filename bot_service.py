@@ -14,6 +14,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 from arb_bot import Tier1Bot, Tier2Bot, Tier3Bot
+from database import Database
+from security import SecurityManager
 
 # Configure logging
 logging.basicConfig(
@@ -33,8 +35,10 @@ class BotService:
             config_dir: Directory to store configuration files
         """
         self.config_dir = config_dir
-        self.bots = {}  # Store running bot instances
+        self.running_bots: Dict[str, Dict[str, Any]] = {}
         self.ensure_config_dir()
+        self.db = Database()
+        self.security = SecurityManager()
         
     def ensure_config_dir(self):
         """Ensure configuration directory exists with proper permissions"""
@@ -50,23 +54,55 @@ class BotService:
                 os.makedirs(self.config_dir, mode=0o700, exist_ok=True)
                 logger.warning(f"Using fallback config directory: {self.config_dir}")
         
-    def create_config(self, user_id: str, tier: int, kraken_key: str, 
-                    kraken_secret: str, hl_key: str, hl_secret: str,
-                    selected_tokens: List[str] = None) -> str:
+    def _get_decrypted_keys(self, user_id_str: str) -> Optional[Dict[str, str]]:
+        """Helper to retrieve and decrypt API keys from the database."""
+        keys = {}
+        try:
+            telegram_id = int(user_id_str) # DB uses integer ID
+            kraken_db_key = self.db.get_api_key(telegram_id, 'kraken')
+            hl_db_key = self.db.get_api_key(telegram_id, 'hyperliquid')
+
+            if not kraken_db_key or not hl_db_key:
+                logger.error(f"API keys not found in database for user {user_id_str}")
+                return None
+
+            keys['kraken_key'] = self.security.decrypt(kraken_db_key.encrypted_key, kraken_db_key.key_iv)
+            keys['kraken_secret'] = self.security.decrypt(kraken_db_key.encrypted_secret, kraken_db_key.secret_iv)
+            # HL Key might be optional, handle potential decryption errors or missing key
+            try:
+                keys['hl_key'] = self.security.decrypt(hl_db_key.encrypted_key, hl_db_key.key_iv)
+            except Exception:
+                 logger.warning(f"Could not decrypt optional HL API key for user {user_id_str}. Using None.")
+                 keys['hl_key'] = None # Allow None for optional key
+            keys['hl_secret'] = self.security.decrypt(hl_db_key.encrypted_secret, hl_db_key.secret_iv)
+            keys['hl_wallet'] = self.db.get_hyperliquid_wallet(telegram_id) # Assuming a DB method to get the wallet address
+
+            if not keys['hl_wallet']:
+                logger.error(f"Hyperliquid wallet address not found for user {user_id_str}")
+                return None
+
+            return keys
+        except ValueError:
+             logger.error(f"Invalid user_id format: {user_id_str}. Cannot fetch keys.")
+             return None
+        except Exception as e:
+            logger.exception(f"Error retrieving or decrypting keys for user {user_id_str}: {e}")
+            return None
+
+    def create_config(self, user_id_str: str, tier: int, api_keys: Dict[str, str],
+                      selected_tokens: List[str], strategies: Dict[str, str]) -> str:
         """
-        Create configuration file for user
+        Create or update configuration file for user. Now includes strategies.
         
         Args:
-            user_id: User's telegram ID
-            tier: Subscription tier
-            kraken_key: Kraken API key
-            kraken_secret: Kraken API secret
-            hl_key: Hyperliquid API key
-            hl_secret: Hyperliquid private key
-            selected_tokens: List of token symbols to trade
+            user_id_str: User's telegram ID as string.
+            tier: Subscription tier.
+            api_keys: Dictionary containing decrypted API keys and wallet.
+            selected_tokens: List of token symbols to trade.
+            strategies: Dictionary with 'entry_strategy' and 'exit_strategy'.
             
         Returns:
-            Path to created config file
+            Path to created/updated config file.
         """
         try:
             # Create config parser
@@ -74,21 +110,22 @@ class BotService:
             
             # Add API credentials
             config['kraken'] = {
-                'api_key': kraken_key,
-                'api_secret': kraken_secret
+                'api_key': api_keys['kraken_key'],
+                'api_secret': api_keys['kraken_secret']
             }
             
             config['hyperliquid'] = {
-                'api_key': hl_key,
-                'private_key': hl_secret
+                'api_key': api_keys.get('hl_key', ''), # Handle potentially missing optional key
+                'private_key': api_keys['hl_secret'],
+                'wallet_address': api_keys['hl_wallet'] # Include wallet address
             }
             
-            # Add service configuration
+            # Add service configuration (less critical for arb_bot now, but maybe useful)
             config['service'] = {
                 'tier': str(tier),
-                'user_id': user_id,
-                'max_slippage': '0.05',  # 5% max slippage (flash crash protection)
-                'liquidation_threshold': '0.2'  # 20% margin threshold
+                'user_id': user_id_str,
+                # 'max_slippage': '0.05',
+                # 'liquidation_threshold': '0.2'
             }
             
             # Add selected tokens if provided
@@ -97,8 +134,15 @@ class BotService:
                     'selected': ','.join(selected_tokens)
                 }
             
+            # --- Add Strategies Section ---
+            config['Strategies'] = {
+                'entry_strategy': strategies.get('entry_strategy', 'default'),
+                'exit_strategy': strategies.get('exit_strategy', 'default')
+            }
+            # -----------------------------
+            
             # Determine config file path (named with user ID)
-            config_path = os.path.join(self.config_dir, f"{user_id}.ini")
+            config_path = os.path.join(self.config_dir, f"{user_id_str}.ini")
             
             # Write config with restricted permissions
             with open(config_path, 'w') as f:
@@ -106,262 +150,287 @@ class BotService:
                 
             # Set secure permissions (only readable by owner)
             os.chmod(config_path, 0o600)
-            
+            logger.info(f"Configuration file created/updated for user {user_id_str} at {config_path}")
             return config_path
             
         except Exception as e:
-            logger.error(f"Failed to create config for user {user_id}: {str(e)}")
-            raise
-            
-    def start_bot(self, user_id: str, tier: int, kraken_key: str, 
-                 kraken_secret: str, hl_key: str, hl_secret: str,
-                 selected_tokens: List[str] = None) -> bool:
+            logger.error(f"Failed to create/update config for user {user_id_str}: {str(e)}")
+            raise # Re-raise the exception to be caught by the caller
+
+    def start_bot_instance(self, user_id_str: str) -> bool:
         """
-        Start a bot for the user with the specified tier and tokens
+        Starts or restarts a bot instance for a given user using data from the database.
+        Retrieves keys, tokens, tier, and strategies, creates config,
+        instantiates the correct bot, calls initialize(), and starts the run thread.
         
         Args:
-            user_id: User's telegram ID
-            tier: Subscription tier
-            kraken_key: Kraken API key
-            kraken_secret: Kraken API secret
-            hl_key: Hyperliquid API key
-            hl_secret: Hyperliquid private key
-            selected_tokens: List of token symbols to trade
+            user_id_str: The user's Telegram ID as a string.
             
         Returns:
-            True if successful, False otherwise
+            True if the bot was successfully initialized and started, False otherwise.
         """
+        logger.info(f"Attempting to start bot instance for user {user_id_str}...")
         try:
-            # Validate tokens
-            if not selected_tokens:
-                logger.error(f"No tokens selected for user {user_id}")
-                return False
-                
-            # Create config file
+            telegram_id = int(user_id_str) # Convert to int for DB lookup
+        except ValueError:
+            logger.error(f"Invalid user ID format: {user_id_str}")
+            return False
+
+        # --- 1. Fetch User Data from DB ---
+        user = self.db.get_user_by_telegram_id(telegram_id)
+        if not user:
+            logger.error(f"User {user_id_str} not found in database.")
+            return False
+        if not user.subscription_tier or not user.subscription_expiry or user.subscription_expiry < datetime.now():
+             logger.error(f"User {user_id_str} has no active subscription.")
+             return False
+
+        tier = user.subscription_tier
+        selected_tokens = self.db.get_user_tokens(telegram_id)
+        strategies = self.db.get_user_strategies(telegram_id) # Fetch strategies
+
+        if not selected_tokens:
+            logger.error(f"No tokens selected for user {user_id_str}. Cannot start bot.")
+            return False
+
+        # --- 2. Fetch and Decrypt API Keys ---
+        api_keys = self._get_decrypted_keys(user_id_str)
+        if not api_keys:
+            logger.error(f"Failed to retrieve or decrypt API keys for user {user_id_str}. Cannot start bot.")
+            return False
+
+        # --- 3. Create/Update Config File ---
+        try:
             config_path = self.create_config(
-                user_id, tier, kraken_key, kraken_secret, hl_key, hl_secret,
+                user_id_str=user_id_str,
+                tier=tier,
+                api_keys=api_keys,
+                selected_tokens=selected_tokens,
+                strategies=strategies # Pass strategies to config
+            )
+        except Exception as e:
+             logger.error(f"Failed to create config file for user {user_id_str}: {e}. Cannot start bot.")
+             return False
+
+
+        # --- 4. Stop Existing Bot (if any) ---
+        if user_id_str in self.running_bots:
+            logger.info(f"Stopping existing bot for user {user_id_str} before starting new one.")
+            self.stop_bot(user_id_str) # Use the existing stop logic
+
+
+        # --- 5. Instantiate Correct Bot Class ---
+        bot = None
+        BotClass = None
+        try:
+            if tier == 1: BotClass = Tier1Bot
+            elif tier == 2: BotClass = Tier2Bot
+            elif tier == 3: BotClass = Tier3Bot
+            else:
+                logger.error(f"Invalid tier {tier} for user {user_id_str}.")
+                return False
+
+            # Pass config_path, user_id_str, and selected_tokens to constructor
+            bot = BotClass(
+                config_path=config_path,
+                user_id=user_id_str,
                 selected_tokens=selected_tokens
             )
-            
-            # Stop existing bot if running
-            self.stop_bot(user_id)
-            
-            # Create appropriate bot based on tier
-            bot = None
-            try:
-                if tier == 1:
-                    bot = Tier1Bot(config_path, user_id)
-                elif tier == 2:
-                    bot = Tier2Bot(config_path, user_id)
-                elif tier == 3:
-                    bot = Tier3Bot(config_path, user_id)
-                else:
-                    logger.error(f"Invalid tier: {tier}")
-                    return False
-            except AttributeError as e:
-                if "'Tier1Bot' object has no attribute 'logger'" in str(e):
-                    logger.error(f"Bot initialization error (missing logger): {e}")
-                    # Add a fallback logger since the bot couldn't create one
-                    if tier == 1:
-                        bot = Tier1Bot(config_path, user_id)
-                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
-                        bot.logger.setLevel(logging.INFO)
-                    elif tier == 2:
-                        bot = Tier2Bot(config_path, user_id)
-                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
-                        bot.logger.setLevel(logging.INFO)
-                    elif tier == 3:
-                        bot = Tier3Bot(config_path, user_id)
-                        bot.logger = logging.getLogger(f"arb_bot_{user_id}")
-                        bot.logger.setLevel(logging.INFO)
-                else:
-                    raise
-                
-            # Start bot in separate thread
-            bot_thread = threading.Thread(target=bot.run)
+            logger.info(f"Instantiated {BotClass.__name__} for user {user_id_str}")
+
+        except Exception as e:
+             logger.exception(f"Failed to instantiate {BotClass.__name__ if BotClass else 'Bot'} for user {user_id_str}: {e}")
+             return False
+
+        # --- 6. Initialize the Bot ---
+        try:
+            logger.info(f"Initializing bot for user {user_id_str}...")
+            bot.initialize() # Explicitly call initialize
+        except Exception as e:
+            logger.exception(f"Error during bot initialization for user {user_id_str}: {e}")
+            # Attempt cleanup if needed? Bot object exists but is not running.
+            self.running_bots[user_id_str] = None # Clear any partial registration
+            return False # Report failure
+
+        # --- 7. Check if Initialization Succeeded ---
+        if not bot.running:
+            logger.error(f"Bot initialization failed for user {user_id_str} (bot.running is False). Check arb_bot logs.")
+            self.running_bots[user_id_str] = None
+            # Consider removing the config file if init failed permanently?
+            # if os.path.exists(config_path): os.remove(config_path)
+            return False
+
+        # --- 8. Start Bot Thread ---
+        try:
+            bot_thread = threading.Thread(target=bot.run, name=f"ArbBot_{user_id_str}")
             bot_thread.daemon = True
             bot_thread.start()
-            
-            # Store bot instance
-            self.bots[user_id] = {
+
+            # Store bot instance and metadata
+            self.running_bots[user_id_str] = {
                 'bot': bot,
                 'thread': bot_thread,
                 'tier': tier,
                 'config_path': config_path,
                 'start_time': datetime.now(),
-                'selected_tokens': selected_tokens
+                'selected_tokens': selected_tokens,
+                'strategies': strategies # Store strategies for status checks
             }
-            
-            logger.info(f"Started tier {tier} bot for user {user_id} with tokens: {', '.join(selected_tokens)}")
-            return True
-            
+            logger.info(f"Successfully started {BotClass.__name__} for user {user_id_str} with tokens: {', '.join(selected_tokens)}, Strategies: {strategies}")
+            # Update DB status
+            self.db.update_bot_status(telegram_id, is_running=True, start_time=datetime.now())
+            return True # Report success
+
         except Exception as e:
-            logger.error(f"Failed to start bot for user {user_id}: {str(e)}")
-            return False
-            
-    def stop_bot(self, user_id: str) -> bool:
+             logger.exception(f"Failed to start bot thread for user {user_id_str}: {e}")
+             # Attempt cleanup
+             bot.shutdown(emergency=True) # Tell bot object to clean up if possible
+             self.running_bots[user_id_str] = None
+             self.db.update_bot_status(telegram_id, is_running=False, stop_time=datetime.now())
+             return False
+
+    def stop_bot(self, user_id_str: str) -> bool:
         """
-        Stop bot for the specified user
+        Stop bot for the specified user.
         
         Args:
-            user_id: User's telegram ID
+            user_id_str: User's telegram ID as string.
             
         Returns:
-            True if successful, False otherwise
+            True if successful or bot wasn't running, False otherwise.
         """
-        if user_id in self.bots:
-            try:
-                bot_info = self.bots[user_id]
-                bot = bot_info['bot']
-                
-                # Signal bot to stop
-                logger.info(f"Stopping bot for user {user_id}")
-                bot.running = False
-                
-                # Wait for bot to exit positions and clean up (max 60 seconds)
-                bot_info['thread'].join(timeout=60)
-                
-                # Remove config file
-                if os.path.exists(bot_info['config_path']):
-                    os.remove(bot_info['config_path'])
-                    
-                # Remove bot from list
-                del self.bots[user_id]
-                logger.info(f"Bot stopped for user {user_id}")
+        if user_id_str in self.running_bots:
+            logger.info(f"Attempting to stop bot for user {user_id_str}...")
+            bot_info = self.running_bots.get(user_id_str)
+            if not bot_info:
+                logger.warning(f"Bot info not found for user {user_id_str} despite being in keys. Inconsistent state?")
+                # Clean up the entry anyway
+                del self.running_bots[user_id_str]
+                try: self.db.update_bot_status(int(user_id_str), is_running=False, stop_time=datetime.now())
+                except ValueError: pass
                 return True
-                
+
+            bot = bot_info.get('bot')
+            thread = bot_info.get('thread')
+
+            try:
+                if bot:
+                    # Signal bot to stop using its shutdown method
+                    logger.info(f"Calling shutdown() for user {user_id_str}'s bot...")
+                    bot.shutdown() # Use the bot's own shutdown procedure
+                else:
+                     logger.warning(f"No bot object found for user {user_id_str} during stop request.")
+
+                # Wait for bot thread to exit
+                if thread and thread.is_alive():
+                    logger.info(f"Waiting for bot thread {user_id_str} to join (timeout=60s)...")
+                    thread.join(timeout=60)
+                    if thread.is_alive():
+                        logger.warning(f"Bot thread for user {user_id_str} did not exit cleanly after 60s.")
+                    else:
+                         logger.info(f"Bot thread for user {user_id_str} joined successfully.")
+                else:
+                     logger.info(f"Bot thread for user {user_id_str} was not running or already joined.")
+
+                # Clean up config file (optional, maybe keep for logs/restart?)
+                # config_path = bot_info.get('config_path')
+                # if config_path and os.path.exists(config_path):
+                #     try:
+                #         os.remove(config_path)
+                #         logger.info(f"Removed config file for user {user_id_str}: {config_path}")
+                #     except OSError as e:
+                #         logger.error(f"Error removing config file {config_path} for user {user_id_str}: {e}")
+
+                # Remove bot from running list
+                del self.running_bots[user_id_str]
+                logger.info(f"Bot instance removed for user {user_id_str}")
+                # Update DB status
+                try: self.db.update_bot_status(int(user_id_str), is_running=False, stop_time=datetime.now())
+                except ValueError: pass
+                return True
+
             except Exception as e:
-                logger.error(f"Error stopping bot for user {user_id}: {str(e)}")
-                # Try to clean up even if error occurred
-                if user_id in self.bots:
-                    del self.bots[user_id]
+                logger.exception(f"Error during graceful shutdown for user {user_id_str}: {e}")
+                # Force cleanup if error occurred
+                if user_id_str in self.running_bots:
+                    del self.running_bots[user_id_str]
+                try: self.db.update_bot_status(int(user_id_str), is_running=False, stop_time=datetime.now())
+                except ValueError: pass
                 return False
-                
-        logger.info(f"No bot running for user {user_id}")
-        return True
-        
-    def get_bot_status(self, user_id: str) -> Optional[Dict[str, Any]]:
+        else:
+            logger.info(f"No bot currently registered as running for user {user_id_str}. Ensuring DB status is updated.")
+            try: self.db.update_bot_status(int(user_id_str), is_running=False)
+            except ValueError: pass
+            return True # Return True as the desired state (not running) is achieved
+
+    def get_bot_status(self, user_id_str: str) -> Optional[Dict[str, Any]]:
         """
-        Get status of bot for the specified user
+        Get status of the bot for the specified user.
         
         Args:
-            user_id: User's telegram ID
+            user_id_str: User's telegram ID as string.
             
         Returns:
-            Dict with bot status or None if not found
+            Dictionary with bot status details, or None if bot not found/running.
         """
-        if user_id in self.bots:
+        if user_id_str in self.running_bots:
+            bot_info = self.running_bots[user_id_str]
+            bot = bot_info.get('bot')
+            thread = bot_info.get('thread')
+            status = {
+                'user_id': user_id_str,
+                'is_running': bool(bot and thread and thread.is_alive() and bot.running),
+                'tier': bot_info.get('tier'),
+                'start_time': bot_info.get('start_time'),
+                'selected_tokens': bot_info.get('selected_tokens'),
+                'strategies': bot_info.get('strategies'), # Include strategies
+                'thread_alive': bool(thread and thread.is_alive()),
+                'bot_running_flag': bool(bot and bot.running),
+                'active_positions': list(bot.active_positions) if bot else [],
+                'last_error': bot.assets[list(bot.active_positions)[0]]['last_error'] if bot and bot.active_positions and list(bot.active_positions)[0] in bot.assets else None # Example error reporting
+            }
+            # You might want to add more detailed state from the bot object itself
+            # e.g., current balances, PnL, recent errors, last funding rates
+            # Be careful not to block the Telegram bot by calling slow methods here.
+            return status
+        else:
+            # Check DB for potentially stale status
             try:
-                bot_info = self.bots[user_id]
-                bot = bot_info['bot']
-                
-                # Collect status information
-                status = {
-                    'tier': bot_info['tier'],
-                    'running': bot.running,
-                    'start_time': bot_info['start_time'],
-                    'uptime': (datetime.now() - bot_info['start_time']).total_seconds(),
-                    'positions': {},
-                    'selected_tokens': bot_info.get('selected_tokens', [])
-                }
-                
-                # Collect position information
-                for asset in bot.assets:
-                    asset_data = bot.assets[asset]
-                    if asset_data["in_position"]:
-                        status['positions'][asset] = {
-                            'hl_position': asset_data["hl_position_size"],
-                            'kraken_position': asset_data["kraken_position_size"],
-                            'entry_time': asset_data.get("entry_time", None)
-                        }
-                        
-                return status
-                
-            except Exception as e:
-                logger.error(f"Error getting bot status for user {user_id}: {str(e)}")
-                
-        return None
-        
+                db_status = self.db.get_bot_status(int(user_id_str))
+                if db_status and db_status.is_running:
+                     # DB says running, but service doesn't know -> likely crashed/restarted
+                     logger.warning(f"Inconsistent state for user {user_id_str}: DB shows running, but bot_service has no instance.")
+                     return {'user_id': user_id_str, 'is_running': False, 'status_detail': 'Inconsistent state (DB running, Service stopped)'}
+            except ValueError: pass
+            except Exception as e: logger.error(f"Error checking DB status for user {user_id_str}: {e}")
+
+            return {'user_id': user_id_str, 'is_running': False, 'status_detail': 'Not running'}
+
     def list_active_bots(self) -> Dict[str, Dict[str, Any]]:
-        """
-        List all active bots
-        
-        Returns:
-            Dict mapping user IDs to bot info
-        """
-        active_bots = {}
-        
-        for user_id, info in self.bots.items():
-            try:
-                active_bots[user_id] = {
-                    'tier': info['tier'],
-                    'start_time': info['start_time'],
-                    'uptime': (datetime.now() - info['start_time']).total_seconds(),
-                    'is_running': info['bot'].running,
-                    'selected_tokens': info.get('selected_tokens', [])
+        """List all currently active bot instances managed by this service."""
+        active_bots_summary = {}
+        for user_id, bot_info in list(self.running_bots.items()): # Iterate over copy
+            bot = bot_info.get('bot')
+            thread = bot_info.get('thread')
+            is_running = bool(bot and thread and thread.is_alive() and bot.running)
+            if is_running:
+                active_bots_summary[user_id] = {
+                    'tier': bot_info.get('tier'),
+                    'start_time': bot_info.get('start_time'),
+                    'selected_tokens': bot_info.get('selected_tokens'),
+                    'strategies': bot_info.get('strategies'),
+                    'active_positions': list(bot.active_positions) if bot else []
                 }
-            except Exception as e:
-                logger.error(f"Error getting info for bot {user_id}: {str(e)}")
-                
-        return active_bots
-        
-    def update_bot_tokens(self, user_id: str, tokens: List[str]) -> bool:
-        """
-        Update tokens for a running bot
-        
-        Args:
-            user_id: User's telegram ID
-            tokens: New list of tokens to trade
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        if user_id not in self.bots:
-            logger.error(f"No running bot found for user {user_id}")
-            return False
-            
-        try:
-            bot_info = self.bots[user_id]
-            
-            # Restart the bot with new tokens
-            tier = bot_info['tier']
-            config_path = bot_info['config_path']
-            
-            # Update config file
-            config = configparser.ConfigParser()
-            config.read(config_path)
-            
-            if 'tokens' not in config:
-                config['tokens'] = {}
-                
-            config['tokens']['selected'] = ','.join(tokens)
-            
-            with open(config_path, 'w') as f:
-                config.write(f)
-                
-            # We need to restart the bot to apply new tokens
-            # This would be handled better in production with a dynamic update mechanism
-            self.stop_bot(user_id)
-            
-            # Get API keys from config
-            kraken_key = config['kraken']['api_key']
-            kraken_secret = config['kraken']['api_secret']
-            hl_key = config['hyperliquid']['api_key']
-            hl_secret = config['hyperliquid']['private_key']
-            
-            # Start new bot with updated tokens
-            self.start_bot(
-                user_id=user_id,
-                tier=tier,
-                kraken_key=kraken_key,
-                kraken_secret=kraken_secret,
-                hl_key=hl_key,
-                hl_secret=hl_secret,
-                selected_tokens=tokens
-            )
-            
-            return True
-            
-        except Exception as e:
-            logger.error(f"Error updating tokens for user {user_id}: {str(e)}")
-            return False
+            else:
+                 # Cleanup potentially dead bot entries
+                 logger.warning(f"Found non-running bot entry for user {user_id}. Cleaning up.")
+                 self.stop_bot(user_id) # Attempt graceful cleanup
+
+        return active_bots_summary
+
+    # Helper to get Bot Class - Added for clarity
+    def get_bot_class_for_tier(self, tier: int) -> Optional[type]:
+        if tier == 1: return Tier1Bot
+        elif tier == 2: return Tier2Bot
+        elif tier == 3: return Tier3Bot
+        else: return None
