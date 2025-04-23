@@ -108,9 +108,14 @@ class AbraxasGreenprintBot:
         # Cache available pairs
         self.available_pairs = get_active_trading_pairs()
         
-        # Initialize telegram application
+        # Initialize telegram application with webhook settings
         self.application = Application.builder().token(token).build()
         self.setup_handlers()
+        
+        # Webhook settings
+        self.webhook_url = os.getenv('WEBHOOK_URL', 'https://your-domain.com/webhook')
+        self.webhook_port = int(os.getenv('WEBHOOK_PORT', '8443'))
+        self.webhook_path = f"/webhook/{token}"  # Unique path per bot instance
         
     def setup_handlers(self):
         """Setup handlers for commands and callbacks"""
@@ -2186,9 +2191,43 @@ class AbraxasGreenprintBot:
             return ConversationHandler.END
     
     def run(self):
-        """Start the bot"""
-        logger.info("Starting Abraxas Greenprint Funding Bot")
-        self.application.run_polling()
+        """Start the bot with polling"""
+        logger.info("Starting Abraxas Greenprint Funding Bot with polling")
+        
+        try:
+            # First, try to delete any existing webhook
+            try:
+                self.application.bot.delete_webhook()
+                logger.info("Successfully deleted any existing webhook")
+            except Exception as e:
+                logger.warning(f"Error deleting webhook: {e}")
+            
+            # Add error handler for conflict
+            async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+                logger.error(f"Exception while handling an update: {context.error}")
+                if isinstance(context.error, telegram.error.Conflict):
+                    logger.error("Bot conflict detected. Another instance might be running.")
+                    # Try to gracefully shut down
+                    await self.application.stop()
+                    # Exit the program
+                    import sys
+                    sys.exit(1)
+            
+            # Add the error handler
+            self.application.add_error_handler(error_handler)
+            
+            # Start the bot with polling
+            self.application.run_polling()
+            
+        except telegram.error.Conflict as e:
+            logger.error(f"Bot conflict detected: {e}")
+            logger.error("Another instance of the bot is already running. Please stop it first.")
+            # Exit with error code
+            import sys
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"Unexpected error starting bot: {e}")
+            raise
         
 if __name__ == '__main__':
     token = os.getenv('TELEGRAM_BOT_TOKEN')
