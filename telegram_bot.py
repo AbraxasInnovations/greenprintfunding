@@ -66,6 +66,7 @@ logger = logging.getLogger(__name__)
     AWAITING_KRAKEN_SECRET,
     AWAITING_HL_KEY,
     AWAITING_HL_SECRET,
+    AWAITING_HL_WALLET, # Add new state for wallet address
     AWAITING_PAYMENT,
     CONFIRM_START,
     CONFIRM_STOP,
@@ -76,7 +77,7 @@ logger = logging.getLogger(__name__)
     CONFIRMING_STRATEGIES,
     CHOOSING_PAYMENT,
     PAYMENT_EMAIL_ENTRY
-) = range(18)
+) = range(19)
 
 class AbraxasGreenprintBot:
     """
@@ -92,9 +93,9 @@ class AbraxasGreenprintBot:
 
         # Set pricing for each tier (USD)
         self.pricing = {
-            1: 50,  # $50/month for Tier 1 (1 token)
-            2: 100, # $100/month for Tier 2 (2 tokens)
-            3: 200  # $200/month for Tier 3 (All tokens)
+            1: 49,  # $49/month for Tier 1 (1 token)
+            2: 95, # $95/month for Tier 2 (2 tokens)
+            3: 2500  # $2500/month for Tier 3 (All tokens)
         }
         
         # Token limits per tier
@@ -210,7 +211,8 @@ class AbraxasGreenprintBot:
                 AWAITING_KRAKEN_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_kraken_key)],
                 AWAITING_KRAKEN_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_kraken_secret)],
                 AWAITING_HL_KEY: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_key)],
-                AWAITING_HL_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_secret)]
+                AWAITING_HL_SECRET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_secret)],
+                AWAITING_HL_WALLET: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.process_hl_wallet)] # Add handler for new state
             },
             fallbacks=[CommandHandler("cancel", self.cancel_conversation)]
         )
@@ -276,9 +278,9 @@ class AbraxasGreenprintBot:
             "/help - Show this help message\n\n"
             
             "*Subscription Tiers:*\n"
-            "🥉 *Tier 1* - $50/month - Trade 1 token of your choice\n"
-            "🥈 *Tier 2* - $100/month - Trade 2 tokens of your choice\n"
-            "🥇 *Tier 3* - $200/month - Trade all available tokens\n\n"
+            "🥉 *Tier 1* - $49/month - Trade 1 token of your choice\n"
+            "🥈 *Tier 2* - $95/month - Trade 2 tokens of your choice\n"
+            "🥇 *Tier 3* - $2500/month - Trade all available tokens\n\n"
             
             "*How Funding Arbitrage Works:*\n"
             "The bot exploits the funding rate differences between perpetual futures "
@@ -293,7 +295,7 @@ class AbraxasGreenprintBot:
             "• You can revoke access anytime by deleting your API keys\n\n"
             
             "*Need more help?*\n"
-            "Contact @admin_username for support"
+            "Contact `@admin_username` for support"
         )
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
@@ -332,27 +334,27 @@ class AbraxasGreenprintBot:
         
         # User doesn't have an active subscription, show subscription options
         keyboard = [
-            [InlineKeyboardButton(f"Tier 1: $50/month", callback_data="tier_1")],
-            [InlineKeyboardButton(f"Tier 2: $100/month", callback_data="tier_2")],
-            [InlineKeyboardButton(f"Tier 3: $200/month", callback_data="tier_3")]
+            [InlineKeyboardButton(f"Tier 1: $49/month (1 Token)", callback_data="tier_1")],
+            [InlineKeyboardButton(f"Tier 2: $95/month (2 Tokens)", callback_data="tier_2")],
+            [InlineKeyboardButton(f"Tier 3: $2500/month (All Tokens)", callback_data="tier_3")]
         ]
         
         await update.message.reply_text(
             "Please select a subscription tier:\n\n"
-            "🔹 *Tier 1* ($50/month):\n"
+            "🔹 *Tier 1* ($49/month):\n"
             "- Access to base funding bot features\n"
-            "- 5 trading pairs\n"
+            "- Trade 1 selected token\n"
             "- Basic risk management\n\n"
             
-            "🔸 *Tier 2* ($100/month):\n"
+            "🔸 *Tier 2* ($95/month):\n"
             "- All Tier 1 features\n"
-            "- 10 trading pairs\n"
+            "- Trade 2 selected tokens\n"
             "- Enhanced risk management\n"
             "- Priority support\n\n"
             
-            "💎 *Tier 3* ($200/month):\n"
+            "💎 *Tier 3* ($2500/month):\n"
             "- All Tier 2 features\n"
-            "- Unlimited trading pairs\n"
+            "- Trade all available tokens\n"
             "- Advanced risk management\n"
             "- VIP support\n"
             "- Custom strategies",
@@ -419,11 +421,7 @@ class AbraxasGreenprintBot:
         tier = context.user_data.get('selected_tier', 1)
         
         # Set the appropriate amount based on tier
-        amount = 50  # Tier 1 default
-        if tier == 2:
-            amount = 100
-        elif tier == 3:
-            amount = 200
+        amount = self.pricing.get(tier, 49) # Use the pricing dict, default to Tier 1 price
         
         context.user_data['payment_data']['amount'] = amount
         
@@ -1235,33 +1233,85 @@ class AbraxasGreenprintBot:
         """Process Hyperliquid API secret input"""
         try:
             logger.info(f"Processing Hyperliquid API secret from user {update.effective_user.id}")
-            
+
             # Delete the message containing the API secret for security
             await update.message.delete()
-            
-            # Store the API secret securely
+
+            # Store the API secret securely temporarily
             context.user_data['hl_secret'] = update.message.text
-            
-            # Get all API keys from user data
+
+            # Send a confirmation message and ask for wallet address
+            msg = await update.message.reply_text(
+                "✅ Hyperliquid API Secret received.\n\n"
+                "Finally, please enter your Hyperliquid Wallet Address (starting with 0x):"
+            )
+
+            logger.info(f"Transitioning to AWAITING_HL_WALLET state for user {update.effective_user.id}")
+            return AWAITING_HL_WALLET # Transition to ask for wallet address
+
+        except Exception as e:
+            logger.error(f"Error processing Hyperliquid API secret: {str(e)}")
+            await update.message.reply_text(
+                "❌ There was an error processing your API secret. Please try again with /setkeys"
+            )
+            # Clear potentially stored keys if error occurs
+            if 'kraken_key' in context.user_data: del context.user_data['kraken_key']
+            if 'kraken_secret' in context.user_data: del context.user_data['kraken_secret']
+            if 'hl_key' in context.user_data: del context.user_data['hl_key']
+            if 'hl_secret' in context.user_data: del context.user_data['hl_secret']
+            return ConversationHandler.END
+
+    async def process_hl_wallet(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Process Hyperliquid wallet address input and save all keys."""
+        try:
+            user_id = update.effective_user.id
+            logger.info(f"Processing Hyperliquid Wallet Address from user {user_id}")
+
+            # Delete the message containing the wallet address for security
+            await update.message.delete()
+
+            # Validate and store the wallet address
+            hl_wallet_address = update.message.text.strip()
+            if not hl_wallet_address.startswith('0x') or len(hl_wallet_address) < 40: # Basic validation
+                 await update.message.reply_text(
+                    "❌ Invalid Hyperliquid wallet address format. It should start with '0x'. "
+                    "Please start the API key setup again with /setkeys."
+                 )
+                 # Clear context data on failure
+                 context.user_data.clear()
+                 return ConversationHandler.END
+
+            context.user_data['hl_wallet'] = hl_wallet_address
+
+            # Get all API keys and wallet from user data
             kraken_key = context.user_data.get('kraken_key')
             kraken_secret = context.user_data.get('kraken_secret')
             hl_key = context.user_data.get('hl_key')
             hl_secret = context.user_data.get('hl_secret')
-            
-            user_id = update.effective_user.id
-            
-            logger.info(f"All API keys collected for user {user_id}, proceeding to store them securely")
-            
+            # hl_wallet is already assigned above
+
+            if not all([kraken_key, kraken_secret, hl_key, hl_secret, hl_wallet_address]):
+                 logger.error(f"Missing API key/secret/wallet data for user {user_id} during final save.")
+                 await update.message.reply_text(
+                    "❌ Something went wrong, missing some API key or wallet information. "
+                    "Please start the API key setup again with /setkeys."
+                 )
+                 context.user_data.clear()
+                 return ConversationHandler.END
+
+            logger.info(f"All API keys and wallet collected for user {user_id}, proceeding to store them securely")
+
             # Encrypt and store Kraken API keys
             kraken_key_success = False
             hl_key_success = False
-            
+            hl_wallet_success = False
+
             if kraken_key and kraken_secret:
                 try:
                     logger.info(f"Encrypting Kraken API keys for user {user_id}")
                     encrypted_kraken_key, iv_kraken_key = self.security.encrypt(kraken_key)
                     encrypted_kraken_secret, iv_kraken_secret = self.security.encrypt(kraken_secret)
-                    
+
                     kraken_key_success = self.db.store_api_key(
                         telegram_id=user_id,
                         exchange='kraken',
@@ -1272,15 +1322,15 @@ class AbraxasGreenprintBot:
                     )
                     logger.info(f"Kraken API keys storage {'successful' if kraken_key_success else 'failed'} for user {user_id}")
                 except Exception as e:
-                    logger.error(f"Error encrypting Kraken API keys for user {user_id}: {str(e)}")
-                    
+                    logger.error(f"Error encrypting/storing Kraken API keys for user {user_id}: {str(e)}")
+
             # Encrypt and store Hyperliquid API keys
             if hl_key and hl_secret:
                 try:
                     logger.info(f"Encrypting Hyperliquid API keys for user {user_id}")
                     encrypted_hl_key, iv_hl_key = self.security.encrypt(hl_key)
                     encrypted_hl_secret, iv_hl_secret = self.security.encrypt(hl_secret)
-                    
+
                     hl_key_success = self.db.store_api_key(
                         telegram_id=user_id,
                         exchange='hyperliquid',
@@ -1291,56 +1341,63 @@ class AbraxasGreenprintBot:
                     )
                     logger.info(f"Hyperliquid API keys storage {'successful' if hl_key_success else 'failed'} for user {user_id}")
                 except Exception as e:
-                    logger.error(f"Error encrypting Hyperliquid API keys for user {user_id}: {str(e)}")
-                    
-            # Clear API keys from context for security
+                    logger.error(f"Error encrypting/storing Hyperliquid API keys for user {user_id}: {str(e)}")
+
+            # Store Hyperliquid Wallet Address in DB
+            # !!! IMPORTANT: Assumes a method like store_hyperliquid_wallet exists in database.py !!!
+            try:
+                logger.info(f"Storing Hyperliquid wallet address for user {user_id}")
+                # You might need to adapt this call based on your actual database method signature
+                if hasattr(self.db, 'store_hyperliquid_wallet'):
+                     hl_wallet_success = self.db.store_hyperliquid_wallet(
+                        telegram_id=user_id,
+                        wallet_address=hl_wallet_address
+                     )
+                elif hasattr(self.db, 'update_hyperliquid_wallet'): # Corrected check for the actual function name
+                     hl_wallet_success = self.db.update_hyperliquid_wallet( # Corrected function call
+                         telegram_id=user_id,
+                         wallet_address=hl_wallet_address
+                     )
+                else:
+                    logger.error(f"Database method for storing HL wallet not found for user {user_id}. Cannot store wallet.")
+                    # Consider hl_wallet_success = False here?
+
+                logger.info(f"Hyperliquid wallet storage {'successful' if hl_wallet_success else 'failed'} for user {user_id}")
+            except Exception as e:
+                logger.error(f"Error storing Hyperliquid wallet for user {user_id}: {str(e)}")
+
+
+            # Clear sensitive data from context for security
             logger.info(f"Clearing sensitive data from context for user {user_id}")
-            if 'kraken_key' in context.user_data:
-                del context.user_data['kraken_key']
-            if 'kraken_secret' in context.user_data:
-                del context.user_data['kraken_secret']
-            if 'hl_key' in context.user_data:
-                del context.user_data['hl_key']
-            if 'hl_secret' in context.user_data:
-                del context.user_data['hl_secret']
-            if 'setting_api_keys' in context.user_data:  
-                del context.user_data['setting_api_keys']
-                
+            context.user_data.clear() # Clear all user_data at the end of the conversation
+
             # Show confirmation message
-            if kraken_key_success and hl_key_success:
-                logger.info(f"All API keys successfully stored for user {user_id}")
+            if kraken_key_success and hl_key_success and hl_wallet_success:
+                logger.info(f"All API keys and wallet successfully stored for user {user_id}")
                 msg = await update.message.reply_text(
-                    "🔐 All API keys have been securely stored.\n\n"
+                    "🔐 All API keys and your Hyperliquid wallet address have been securely stored.\n\n"
                     "You can now use /tokens to select which tokens to trade,\n"
                     "and /start_bot to begin trading."
                 )
-            elif kraken_key_success:
-                logger.warning(f"Only Kraken API keys were stored successfully for user {user_id}")
-                msg = await update.message.reply_text(
-                    "🔐 Kraken API keys have been securely stored.\n\n"
-                    "However, there was an issue with your Hyperliquid API keys. "
-                    "Please try setting them again with /setkeys."
-                )
-            elif hl_key_success:
-                logger.warning(f"Only Hyperliquid API keys were stored successfully for user {user_id}")
-                msg = await update.message.reply_text(
-                    "🔐 Hyperliquid API keys have been securely stored.\n\n"
-                    "However, there was an issue with your Kraken API keys. "
-                    "Please try setting them again with /setkeys."
-                )
             else:
-                logger.error(f"Failed to store any API keys for user {user_id}")
+                error_messages = []
+                if not kraken_key_success: error_messages.append("Kraken keys")
+                if not hl_key_success: error_messages.append("Hyperliquid keys")
+                if not hl_wallet_success: error_messages.append("Hyperliquid wallet")
+                logger.error(f"Failed to store some credentials for user {user_id}: {', '.join(error_messages)}")
                 msg = await update.message.reply_text(
-                    "❌ There was an issue storing your API keys. Please try again with /setkeys."
+                    f"❌ There was an issue storing some of your details ({', '.join(error_messages)}). "
+                    "Please try setting them again with /setkeys."
                 )
-                
+
             logger.info(f"API key setup completed for user {user_id}")
             return ConversationHandler.END
         except Exception as e:
-            logger.error(f"Error in process_hl_secret for user {update.effective_user.id}: {str(e)}")
+            logger.error(f"Error in process_hl_wallet for user {update.effective_user.id}: {str(e)}")
             await update.message.reply_text(
-                "❌ There was an error processing your API keys. Please try again with /setkeys"
+                "❌ There was an error processing your API keys or wallet. Please try again with /setkeys"
             )
+            context.user_data.clear() # Clear context on exception
             return ConversationHandler.END
         
     async def cmd_start_bot(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1444,17 +1501,21 @@ class AbraxasGreenprintBot:
             hl_api_secret = self.security.decrypt(hl_key.encrypted_secret, hl_key.secret_iv)
             
             try:
-                # Start the trading bot with selected tokens
-                success = self.bot_service.start_bot(
-                    user_id=str(user_id),
-                    tier=user.subscription_tier,
-                    kraken_key=kraken_api_key,
-                    kraken_secret=kraken_api_secret,
-                    hl_key=hl_api_key,
-                    hl_secret=hl_api_secret,
-                    selected_tokens=selected_tokens  # Pass the selected tokens
-                )
-                
+                # Start the trading bot instance using the BotService method
+                # The service now handles fetching keys/tokens/strategies from DB
+                success = self.bot_service.start_bot_instance(str(user_id))
+
+                # Original code below, commented out as service handles data retrieval
+                # success = self.bot_service.start_bot(
+                #     user_id=str(user_id),
+                #     tier=user.subscription_tier,
+                #     kraken_key=kraken_api_key,
+                #     kraken_secret=kraken_api_secret,
+                #     hl_key=hl_api_key,
+                #     hl_secret=hl_api_secret,
+                #     selected_tokens=selected_tokens  # Pass the selected tokens
+                # )
+
                 if success:
                     # Update bot status in database
                     self.db.update_bot_status(
@@ -1466,17 +1527,19 @@ class AbraxasGreenprintBot:
                     # Format tokens for display
                     tokens_text = ", ".join(selected_tokens)
                     
+                    # Use simpler message format to avoid Markdown parsing issues
                     await query.edit_message_text(
-                        "🚀 Abraxas Greenprint Funding Bot started successfully!\n\n"
-                        f"*Trading tokens:* {tokens_text}\n\n"
+                        f"🚀 Abraxas Greenprint Funding Bot started successfully!\n\n"
+                        f"Trading tokens: {tokens_text}\n\n"
                         "Your bot is now running and will automatically trade based on funding rates.\n\n"
                         "You can check its status anytime with /status\n"
                         "To stop the bot, use /stop_bot",
-                        parse_mode='Markdown'
+                        parse_mode=None  # Disable Markdown parsing
                     )
                 else:
                     await query.edit_message_text(
-                        "❌ Failed to start the bot. Please check your API keys and try again."
+                        "❌ Failed to start the bot. Please check your API keys and try again.",
+                        parse_mode=None  # Disable Markdown parsing
                     )
             except Exception as e:
                 logger.error(f"Error starting bot for user {user_id}: {str(e)}")
@@ -1595,14 +1658,42 @@ class AbraxasGreenprintBot:
                 minutes, seconds = divmod(remainder, 60)
                 uptime = f"{int(hours)}h {int(minutes)}m"
                 
-        # Get actual bot positions from service if running
+        # Get actual bot positions and balances from service if running
         positions_text = "No active positions"
+        balances_text = "No balance data available"
+        funding_rates_text = "No funding rate data available"
+        strategies_text = "No strategy data available"
+        
         if bot_status and bot_status.is_running:
             bot_info = self.bot_service.get_bot_status(str(user_id))
-            if bot_info and 'positions' in bot_info and bot_info['positions']:
-                positions_text = ""
-                for asset, pos in bot_info['positions'].items():
-                    positions_text += f"\n{asset}: HL={pos['hl_position']}, Kraken={pos['kraken_position']}"
+            if bot_info:
+                # Format positions
+                if 'positions' in bot_info and bot_info['positions']:
+                    positions_text = ""
+                    for asset, pos in bot_info['positions'].items():
+                        positions_text += f"\n{asset}: HL={pos['hl_position']}, Kraken={pos['kraken_position']}"
+                
+                # Format balances
+                if 'balances' in bot_info and bot_info['balances']:
+                    balances_text = ""
+                    for exchange, balance in bot_info['balances'].items():
+                        if isinstance(balance, (int, float)):
+                            balances_text += f"\n{exchange}: ${balance:.2f}"
+                        else:
+                            balances_text += f"\n{exchange}: {balance}"
+                
+                # Format funding rates
+                if 'funding_rates' in bot_info and bot_info['funding_rates']:
+                    funding_rates_text = ""
+                    for asset, rate in bot_info['funding_rates'].items():
+                        if isinstance(rate, (int, float)):
+                            funding_rates_text += f"\n{asset}: {rate:.4f}%"
+                        else:
+                            funding_rates_text += f"\n{asset}: {rate}"
+                
+                # Format strategies
+                if 'strategies' in bot_info:
+                    strategies_text = f"Entry: {bot_info['strategies'].get('entry_strategy', 'default')}, Exit: {bot_info['strategies'].get('exit_strategy', 'default')}"
                     
         # Format status message
         status_message = (
@@ -1611,11 +1702,16 @@ class AbraxasGreenprintBot:
             f"*Selected Tokens:* {token_status}\n"
             f"*Bot Status:* {status_text}\n"
             f"*Uptime:* {uptime}\n\n"
+            f"*Strategies:*\n{strategies_text}\n\n"
+            f"*Current Funding Rates:*\n{funding_rates_text}\n\n"
+            f"*Exchange Balances:*\n{balances_text}\n\n"
             f"*Active Positions:*\n{positions_text}\n\n"
-            f"Commands:\n"
-            f"• /tokens - Change your token selections\n"
+            f"*Commands:*\n"
+            f"• /tokens - Change token selections\n"
+            f"• /strategies - Configure entry/exit strategies\n"
             f"• /start_bot - Start trading\n"
-            f"• /stop_bot - Stop trading"
+            f"• /stop_bot - Stop trading\n"
+            f"• /status - Refresh this status"
         )
         
         await update.message.reply_text(status_message, parse_mode='Markdown')

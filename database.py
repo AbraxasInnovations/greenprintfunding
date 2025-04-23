@@ -40,6 +40,7 @@ class User(Base):
     selected_tokens = Column(String, nullable=True)  # Comma-separated list of selected tokens
     entry_strategy = Column(String, nullable=True, default="default")  # New field for entry strategy
     exit_strategy = Column(String, nullable=True, default="default")   # New field for exit strategy
+    hyperliquid_wallet_address = Column(String, nullable=True) # Added Hyperliquid wallet address field
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
@@ -416,3 +417,21 @@ class Database:
         with self.Session() as session:
             user = session.query(User).filter_by(email=email).first()
             return user.telegram_id if user else None
+
+    def get_hyperliquid_wallet(self, telegram_id: int) -> Optional[str]:
+        """Get user's Hyperliquid wallet address"""
+        with self.Session() as session:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if user:
+                return user.hyperliquid_wallet_address
+            return None
+
+    def update_hyperliquid_wallet(self, telegram_id: int, wallet_address: str) -> bool:
+        """Update user's Hyperliquid wallet address"""
+        with self.Session() as session:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                return False
+            user.hyperliquid_wallet_address = wallet_address
+            session.commit()
+            return True

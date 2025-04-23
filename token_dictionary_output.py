@@ -2,6 +2,7 @@ from collections import deque
 
 AVAILABLE_PAIRS = {
     "AAVE": {
+        "description": "Aave",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for AAVE
@@ -26,6 +27,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ADA": {
+        "description": "Cardano",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ADA
@@ -50,6 +52,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ALGO": {
+        "description": "Algorand",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ALGO
@@ -74,6 +77,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ALT": {
+        "description": "Altlayer",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ALT
@@ -98,6 +102,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "APE": {
+        "description": "ApeCoin",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for APE
@@ -122,6 +127,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "APT": {
+        "description": "Aptos",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for APT
@@ -146,6 +152,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "AR": {
+        "description": "AR token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for AR
@@ -170,6 +177,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ARB": {
+        "description": "Arbitrum",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ARB
@@ -194,6 +202,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ATOM": {
+        "description": "Cosmos",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ATOM
@@ -218,6 +227,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BABY": {
+        "description": "BABY token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BABY
@@ -242,6 +252,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BADGER": {
+        "description": "Badger DAO",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BADGER
@@ -266,6 +277,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BCH": {
+        "description": "Bitcoin Cash",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BCH
@@ -290,6 +302,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BERA": {
+        "description": "Bera",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BERA
@@ -314,6 +327,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BIGTIME": {
+        "description": "Big Time",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BIGTIME
@@ -338,6 +352,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BIO": {
+        "description": "Biconomy",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BIO
@@ -362,6 +377,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BLUR": {
+        "description": "Blur",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BLUR
@@ -386,6 +402,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BNB": {
+        "description": "BNB token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BNB
@@ -410,6 +427,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "BNT": {
+        "description": "Bancor",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for BNT
@@ -434,6 +452,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "CELO": {
+        "description": "CELO token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for CELO
@@ -458,6 +477,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "COMP": {
+        "description": "Compound",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for COMP
@@ -482,6 +502,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "CRV": {
+        "description": "Curve DAO",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for CRV
@@ -506,6 +527,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "CYBER": {
+        "description": "CyberConnect",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for CYBER
@@ -530,6 +552,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "DOT": {
+        "description": "Polkadot",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for DOT
@@ -554,6 +577,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "DYM": {
+        "description": "Dymension",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for DYM
@@ -578,6 +602,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "EIGEN": {
+        "description": "EigenLayer",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for EIGEN
@@ -602,6 +627,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ENA": {
+        "description": "Ethena",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ENA
@@ -626,6 +652,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ENS": {
+        "description": "Ethereum Name Service",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ENS
@@ -650,6 +677,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ETC": {
+        "description": "Ethereum Classic",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ETC
@@ -674,6 +702,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ETH": {
+        "description": "Ethereum",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ETH
@@ -698,6 +727,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 2,  # Price precision for orders
     },
     "ETHFI": {
+        "description": "ETHfi",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ETHFI
@@ -722,6 +752,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "FARTCOIN": {
+        "description": "FARTCOIN token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for FARTCOIN
@@ -746,6 +777,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "FET": {
+        "description": "Fetch.ai",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for FET
@@ -770,6 +802,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "FIL": {
+        "description": "Filecoin",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for FIL
@@ -794,6 +827,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "FTM": {
+        "description": "Fantom",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for FTM
@@ -818,6 +852,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "GALA": {
+        "description": "Gala",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for GALA
@@ -842,6 +877,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "GMT": {
+        "description": "STEPN",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for GMT
@@ -866,6 +902,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "GOAT": {
+        "description": "GOAT token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for GOAT
@@ -890,6 +927,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "GRASS": {
+        "description": "GRASSHOP",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for GRASS
@@ -914,6 +952,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "GRIFFAIN": {
+        "description": "Griffain",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for GRIFFAIN
@@ -938,6 +977,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "HMSTR": {
+        "description": "HMSTR token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for HMSTR
@@ -962,6 +1002,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "HPOS": {
+        "description": "Harry Potter OSI10",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "market",  # Use market orders on Hyperliquid for HPOS
@@ -986,6 +1027,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 2,  # Price precision for orders
     },
     "INJ": {
+        "description": "Injective",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for INJ
@@ -1010,6 +1052,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "IP": {
+        "description": "IP token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for IP
@@ -1034,6 +1077,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "JTO": {
+        "description": "Jito",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for JTO
@@ -1058,6 +1102,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "JUP": {
+        "description": "Jupiter",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for JUP
@@ -1082,6 +1127,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "KAITO": {
+        "description": "Kaito",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for KAITO
@@ -1106,6 +1152,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "KAS": {
+        "description": "Kaspa",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for KAS
@@ -1130,6 +1177,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "LAYER": {
+        "description": "LAYER token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for LAYER
@@ -1154,6 +1202,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "LDO": {
+        "description": "Lido DAO",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for LDO
@@ -1178,6 +1227,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "LINK": {
+        "description": "Chainlink",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for LINK
@@ -1202,6 +1252,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "LTC": {
+        "description": "Litecoin",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for LTC
@@ -1226,6 +1277,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MATIC": {
+        "description": "Polygon",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MATIC
@@ -1250,6 +1302,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ME": {
+        "description": "Magic Eden",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ME
@@ -1274,6 +1327,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MELANIA": {
+        "description": "MELANIA token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MELANIA
@@ -1298,6 +1352,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MEME": {
+        "description": "Meme",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MEME
@@ -1322,6 +1377,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MEW": {
+        "description": "Mew",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MEW
@@ -1346,6 +1402,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MINA": {
+        "description": "Mina Protocol",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MINA
@@ -1370,6 +1427,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MKR": {
+        "description": "Maker",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MKR
@@ -1394,6 +1452,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MNT": {
+        "description": "Mantle",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MNT
@@ -1418,6 +1477,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MOODENG": {
+        "description": "Moodeng",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MOODENG
@@ -1442,6 +1502,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MORPHO": {
+        "description": "Morpho",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MORPHO
@@ -1466,6 +1527,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "MOVE": {
+        "description": "Move Network",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for MOVE
@@ -1490,6 +1552,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "NEAR": {
+        "description": "NEAR Protocol",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for NEAR
@@ -1514,6 +1577,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "NIL": {
+        "description": "NIL token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for NIL
@@ -1538,6 +1602,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "NOT": {
+        "description": "Not",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for NOT
@@ -1562,6 +1627,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "NTRN": {
+        "description": "Neutron",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for NTRN
@@ -1586,6 +1652,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "OGN": {
+        "description": "OGN token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for OGN
@@ -1610,6 +1677,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "OM": {
+        "description": "OM",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for OM
@@ -1634,6 +1702,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "OMNI": {
+        "description": "OMNI token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for OMNI
@@ -1658,6 +1727,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "ONDO": {
+        "description": "Ondo Finance",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for ONDO
@@ -1682,6 +1752,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "OP": {
+        "description": "Optimism",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for OP
@@ -1706,6 +1777,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "PENDLE": {
+        "description": "Pendle",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for PENDLE
@@ -1730,6 +1802,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "PENGU": {
+        "description": "PENGU token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for PENGU
@@ -1754,6 +1827,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "PNUT": {
+        "description": "PeanutDAO",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for PNUT
@@ -1778,6 +1852,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "POL": {
+        "description": "Polyhedra",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for POL
@@ -1802,6 +1877,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "POPCAT": {
+        "description": "POPCAT",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for POPCAT
@@ -1826,6 +1902,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "PROMPT": {
+        "description": "PROMPT token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for PROMPT
@@ -1850,6 +1927,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "PYTH": {
+        "description": "Pyth Network",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for PYTH
@@ -1874,6 +1952,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "RENDER": {
+        "description": "Render Network",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for RENDER
@@ -1898,6 +1977,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "REQ": {
+        "description": "Request Network",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for REQ
@@ -1922,6 +2002,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "RSR": {
+        "description": "Reserve Rights",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for RSR
@@ -1946,6 +2027,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "RUNE": {
+        "description": "THORChain",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for RUNE
@@ -1970,6 +2052,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SAGA": {
+        "description": "Saga",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SAGA
@@ -1994,6 +2077,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SAND": {
+        "description": "The Sandbox",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SAND
@@ -2018,6 +2102,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SEI": {
+        "description": "SEI",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SEI
@@ -2042,6 +2127,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SOL": {
+        "description": "Solana",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SOL
@@ -2066,6 +2152,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "STG": {
+        "description": "Stargate Finance",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for STG
@@ -2090,6 +2177,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "STRK": {
+        "description": "Starknet",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for STRK
@@ -2114,6 +2202,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SUI": {
+        "description": "Sui",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SUI
@@ -2138,6 +2227,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SUPER": {
+        "description": "SuperVerse",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SUPER
@@ -2162,6 +2252,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "SUSHI": {
+        "description": "SushiSwap",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for SUSHI
@@ -2186,6 +2277,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TAO": {
+        "description": "Bittensor",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TAO
@@ -2210,6 +2302,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TIA": {
+        "description": "Celestia",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TIA
@@ -2234,6 +2327,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TNSR": {
+        "description": "Tensor",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TNSR
@@ -2258,6 +2352,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TON": {
+        "description": "Toncoin",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TON
@@ -2282,6 +2377,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TRUMP": {
+        "description": "Trump",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TRUMP
@@ -2306,6 +2402,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "TURBO": {
+        "description": "TurboETH",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for TURBO
@@ -2330,6 +2427,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "UMA": {
+        "description": "UMA token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for UMA
@@ -2354,6 +2452,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "UNI": {
+        "description": "Uniswap",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for UNI
@@ -2378,6 +2477,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "USUAL": {
+        "description": "Usual",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for USUAL
@@ -2402,6 +2502,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "VINE": {
+        "description": "VINE token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for VINE
@@ -2426,6 +2527,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "VIRTUAL": {
+        "description": "VIRTUAL token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for VIRTUAL
@@ -2450,6 +2552,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "VVV": {
+        "description": "VVV token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for VVV
@@ -2474,6 +2577,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "W": {
+        "description": "Wormhole",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for W
@@ -2498,6 +2602,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "WCT": {
+        "description": "WCT token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for WCT
@@ -2522,6 +2627,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "WIF": {
+        "description": "Dogwifhat",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for WIF
@@ -2546,6 +2652,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "WLD": {
+        "description": "WLD token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for WLD
@@ -2570,6 +2677,7 @@ AVAILABLE_PAIRS = {
         "price_precision": 4,  # Price precision for orders
     },
     "YGG": {
+        "description": "YGG token",  # Full name of the token
         "position_size": 12.0,  # Total position size in USD
         "margin_size": 4.0,  # Approximate margin required
         "hl_order_type": "limit",  # Use limit orders on Hyperliquid for YGG

@@ -49,7 +49,7 @@ class ArbBotBase:
     """Base class for arbitrage bots with common functionality and dynamic sizing"""
 
     # --- Constants ---
-    HL_MIN_ORDER_USD = 10.0
+    HL_MIN_ORDER_USD = 5.0
     EXCHANGE_SAFETY_BUFFER_USD = 1.0 # Keep $1 buffer on each exchange
 
     def __init__(self, config_path=None, user_id=None, selected_tokens=None, tier=1):
@@ -136,7 +136,7 @@ class ArbBotBase:
         self.min_margin_ratio = 0.15 # Current script uses 0.15
         self.max_price_deviation = 0.05 # Current script uses 0.05
         self.flash_crash_cooldowns: Dict[str, float] = {} # Track cooldown per asset
-
+        
         # Trade management
         self.running = True
         # self.assets replaces self.positions and original self.assets structure
@@ -144,7 +144,7 @@ class ArbBotBase:
         self.assets: Dict[str, Dict[str, Any]] = {}
         self.supported_assets: List[str] = [] # List of assets configured for this bot instance
         self.order_history: Dict[str, List[Dict]] = {} # Store order attempts/results per asset
-
+        
         # Error handling
         self.consecutive_errors = 0
         self.error_cooldown = 5 # Current script uses 5
@@ -162,7 +162,7 @@ class ArbBotBase:
         # self.initialize() # Call this externally after creating the bot object
 
     # --- Initialization Sequence ---
-
+    
     def initialize(self):
         """Initialize the bot after configuration. Call this after creating the bot object."""
         self.logger.info("--- Starting Initialization ---")
@@ -235,12 +235,12 @@ class ArbBotBase:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         self.logger = logging.getLogger(f"arb_bot_{self.user_id}")
-        self.logger.setLevel(logging.INFO) # Or DEBUG for more verbose logs
+        self.logger.setLevel(logging.DEBUG) # Changed from INFO to DEBUG for more verbose logs
         if self.logger.hasHandlers(): self.logger.handlers.clear()
         self.logger.addHandler(file_handler)
         self.logger.addHandler(console_handler)
         self.logger.info(f"Logging setup. Log file: {log_filename}")
-
+    
     def load_credentials(self):
         """Load API credentials and HL Wallet Address from configuration"""
         try:
@@ -258,7 +258,7 @@ class ArbBotBase:
                     self.hl_wallet = config['hyperliquid']['wallet_address']
                     self.hl_key = config['hyperliquid'].get('api_key') # Optional API key
                 else: self.logger.warning("Hyperliquid private_key or wallet_address missing in config.")
-
+                    
                 if self.kraken_key and self.hl_secret and self.hl_wallet:
                     self.logger.info("Loaded credentials and wallet from config file")
                 else:
@@ -281,7 +281,7 @@ class ArbBotBase:
             self.logger.error(f"Error loading credentials: {e}")
             # Re-raise as initialization must fail if creds are missing
             raise Exception("Failed to load necessary API credentials/wallet address.") from e
-
+    
     def load_custom_settings(self):
         """Load custom strategy settings chosen by the user (e.g., from config file)."""
         # Simplified to load only from config file for now. DB logic can be added.
@@ -316,12 +316,12 @@ class ArbBotBase:
                  self.exit_strategy = 'default'
 
             self.logger.info(f"Final effective strategies: Entry='{self.entry_strategy}', Exit='{self.exit_strategy}'")
-
+                    
         except Exception as e:
             self.logger.error(f"Error loading custom strategy settings: {str(e)}. Using defaults.")
             self.entry_strategy = 'default'
             self.exit_strategy = 'default'
-
+    
     def setup_apis(self):
         """Initialize API connections and perform initial checks."""
         try:
@@ -335,30 +335,65 @@ class ArbBotBase:
                 raise Exception(f"Kraken API test failed: {kraken_balance_result.get('error', 'Unknown error')}")
             self.logger.info("Kraken API connection successful.")
 
-            # --- Hyperliquid Setup & Test ---
-            if not self.hl_secret or not self.hl_wallet:
-                raise ValueError("Hyperliquid private key or wallet address not loaded.")
+            # Setup Hyperliquid API
+            if self.hl_secret:
+                try:
+                    # Initialize SDK using the private key. The SDK will handle authentication.
+                    # We don't need to explicitly derive or pass the public address here for trading functions.
+                    self.hl_exchange = Exchange(wallet=self.hl_secret)
+                    self.logger.info("Hyperliquid Exchange client initialized successfully.") # Added specific log
 
-            # Validate private key format and derive address
-            try:
-                private_key = self.hl_secret.strip().replace('0x', '').lower()
-                if len(private_key) != 64 or not all(c in string.hexdigits for c in private_key):
-                    raise ValueError("Invalid private key format (must be 64 hex chars).")
-                wallet_account = Account.from_key(private_key)
-                derived_address = wallet_account.address
-            except ValueError as e:
-                raise ValueError(f"Invalid Hyperliquid private key: {e}") from e
+                    # Initialize the Info client separately, trapping its specific errors
+                    try:
+                        self.logger.info("Attempting to initialize Hyperliquid Info client...")
+                        self.hl_info = Info(constants.MAINNET_API_URL, skip_ws=True)
+                        if self.hl_info: # Add check if Info() might return None on failure
+                             self.logger.info("Hyperliquid Info client initialized successfully.")
+                        else:
+                             self.logger.error("Hyperliquid Info() returned None or False. Setting hl_info to None.")
+                             self.hl_info = None # Ensure it's None
+                    except Exception as info_e:
+                        self.logger.error(f"ERROR during Hyperliquid Info() init: Type={type(info_e).__name__}, Msg={str(info_e)}")
+                        self.logger.exception(f"Full traceback for HL Info() init failure:")
+                        self.hl_info = None # Ensure it is None on exception
 
-            # Compare derived address with config address (optional check)
-            if self.hl_wallet.lower() != derived_address.lower():
-                self.logger.warning(f"Wallet address in config ({self.hl_wallet}) does not match address derived from private key ({derived_address}). Using derived address for SDK.")
-                self.hl_wallet = derived_address # Use the address derived from the key for consistency
+                    # Log the address that will be used for WebSocket state subscriptions
+                    if not self.hl_wallet: # Changed back to hl_wallet
+                         self.logger.warning("Hyperliquid wallet address not found in config. WebSocket balance/margin data may not be received.")
+                    else:
+                         # Ensure address format is consistent (e.g., lowercase 0x prefix)
+                         self.hl_wallet = self.hl_wallet.lower() # Changed back to hl_wallet
+                         if not self.hl_wallet.startswith('0x'): # Changed back to hl_wallet
+                             self.hl_wallet = '0x' + self.hl_wallet # Changed back to hl_wallet
+                         self.logger.info(f"Hyperliquid SDK initialized. WebSocket state subscription will use config wallet: {self.hl_wallet}") # Changed back to hl_wallet
 
-            # Initialize Hyperliquid SDK components
-            self.hl_info = Info(constants.MAINNET_API_URL, skip_ws=True) # Use skip_ws=True if managing WS separately
-            self.hl_exchange = Exchange(wallet=wallet_account, base_url=constants.MAINNET_API_URL)
-            self.logger.info(f"Hyperliquid SDK initialized for wallet: {self.hl_wallet}")
+                except Exception as e:
+                    # Explicitly log exception type and message BEFORE the traceback
+                    self.logger.error(f"ERROR during Hyperliquid SDK init: Type={type(e).__name__}, Msg={str(e)}")
+                    self.logger.exception(f"Full traceback for HL SDK init failure:") # Keep traceback log
+                    self.hl_exchange = None # Reset exchange on failure
+                    self.hl_info = None # Ensure info client is None too on failure
+            else: # This block executes if self.hl_secret was not found/provided
+                self.logger.error("Hyperliquid private key not provided in config.")
+                self.hl_exchange = None
+                self.hl_info = None
 
+            # Add diagnostic logging before the check
+            hl_exchange_exists = hasattr(self, 'hl_exchange') and self.hl_exchange is not None
+            hl_info_exists = hasattr(self, 'hl_info') and self.hl_info is not None
+            kraken_keys_exist = hasattr(self, 'kraken_key') and self.kraken_key and hasattr(self, 'kraken_secret') and self.kraken_secret
+            self.logger.info(f"DIAGNOSTIC: Before check - kraken_keys_exist={kraken_keys_exist}, hl_exchange_exists={hl_exchange_exists}, hl_info_exists={hl_info_exists}")
+            self.logger.info(f"DIAGNOSTIC: type(hl_exchange)={type(self.hl_exchange)}, bool(hl_exchange)={bool(self.hl_exchange)}")
+            self.logger.info(f"DIAGNOSTIC: type(hl_info)={type(self.hl_info)}, bool(hl_info)={bool(self.hl_info)}")
+
+            # We need Kraken keys and HL clients
+            if not kraken_keys_exist or not self.hl_exchange or not self.hl_info:
+                self.logger.error("Failed to initialize one or more exchange clients/credentials (Kraken Keys, HL Exchange, HL Info). Bot cannot run.")
+                raise ConnectionError("Failed to initialize exchange API clients or load credentials.")
+            else:
+                self.logger.info("Exchange API clients/credentials initialized.")
+
+        
             # --- Initial Balance Check ---
             self.logger.info("Performing initial balance check...")
             # Use existing check_balances method
@@ -521,67 +556,66 @@ class ArbBotBase:
 
 
     def on_open(self, ws):
-        """Callback when WebSocket connection is established."""
+        """Handle WebSocket connection open"""
         self.logger.info("WebSocket connection established.")
-        self.ws_reconnect_count = 0 # Reset reconnect counter on successful open
-
-        # Subscribe to necessary channels - primarily 'allMids' for funding rates
-        # If 'allMids' is problematic, might need 'userEvents' and manual funding checks
-        try:
-            subscription = {"type": "allMids"} # Standard subscription for mid prices and funding
-            ws.send(json.dumps({"method": "subscribe", "subscription": subscription}))
-            self.logger.info(f"Sent WebSocket subscription request: {subscription}")
-
-            # Optional: Subscribe to user events if needed for fills/orders
-            # user_subscription = {"type": "userEvents", "user": self.hl_wallet}
-            # ws.send(json.dumps({"method": "subscribe", "subscription": user_subscription}))
-            # self.logger.info(f"Sent WebSocket user event subscription request for: {self.hl_wallet}")
-
-            # Subscribe to activeAssetCtx for each supported asset
-            if not self.supported_assets:
-                self.logger.warning("No supported assets configured, cannot subscribe to activeAssetCtx.")
-                return
-
-            for asset in self.supported_assets:
-                try:
-                    subscription = {"type": "activeAssetCtx", "coin": asset}
-                    ws.send(json.dumps({"method": "subscribe", "subscription": subscription}))
-                    self.logger.info(f"Sent WebSocket activeAssetCtx subscription for: {asset}")
-                    time.sleep(0.1) # Small delay between subscriptions
-                except Exception as e:
-                    self.logger.error(f"Error sending WebSocket subscription for {asset}: {e}")
-
-            # Subscribe to user-specific data (like webData2 for positions/margin)
-            try:
-                user_subscription = {"type": "webData2", "user": self.hl_wallet}
-                ws.send(json.dumps({"method": "subscribe", "subscription": user_subscription}))
-                self.logger.info(f"Sent WebSocket webData2 subscription for user: {self.hl_wallet}")
-            except Exception as e:
-                 self.logger.error(f"Error sending webData2 subscription: {e}")
-
-            # Optional: Subscribe to userEvents if needed for fills (may overlap with webData2)
-            # try:
-            #     user_event_sub = {"type": "userEvents", "user": self.hl_wallet}
-            #     ws.send(json.dumps({"method": "subscribe", "subscription": user_event_sub}))
-            #     self.logger.info(f"Sent WebSocket userEvents subscription for user: {self.hl_wallet}")
-            # except Exception as e:
-            #      self.logger.error(f"Error sending userEvents subscription: {e}")
-
-        except Exception as e:
-            self.logger.error(f"Error during initial WebSocket subscriptions: {e}")
-
+        # Wait a moment before subscribing to prevent subscription issues
+        time.sleep(1)
+        
+        # Subscribe to active asset context for each selected token
+        for asset in self.assets:
+            subscribe_msg = {
+                "method": "subscribe",
+                "subscription": {
+                    "type": "activeAssetCtx",
+                    "coin": asset
+                }
+            }
+            ws.send(json.dumps(subscribe_msg))
+            self.logger.info(f"Sent WebSocket subscription for: {asset}")
+            
+        # Reset reconnect count on successful connection
+        self.ws_reconnect_count = 0
 
     def on_message(self, ws, message):
-        """Callback for processing received WebSocket messages."""
-        # Enqueue the message for processing in a separate thread
+        """Handle WebSocket messages"""
         try:
-            # Limit queue size to prevent memory issues if processor falls behind
-            if self.ws_message_queue.qsize() < 1000:
-                 self.ws_message_queue.put(message)
-            else:
-                 self.logger.warning("WebSocket message queue full. Discarding message.")
+            data = json.loads(message)
+            
+            # Handle subscription responses
+            if 'method' in data and data['method'] == 'subscribe':
+                self.logger.info(f"Subscription Response: {data}")
+                return
+                
+            # Handle active asset context updates
+            if 'channel' in data and data['channel'] == 'activeAssetCtx':
+                ctx = data.get('data', {}).get('ctx', {})
+                asset = data.get('data', {}).get('coin')
+                
+                if ctx and asset in self.assets:
+                    if 'funding' in ctx:
+                        self.assets[asset]['ws_funding_rate'] = float(ctx['funding'])
+                        self.last_funding_rates[asset] = float(ctx['funding']) * 100  # Store as percentage
+                        self.logger.info(f"Updated {asset} funding rate from WebSocket: {float(ctx['funding']) * 100:.4f}%")
+                        
+                    if 'predFunding' in ctx:
+                        self.assets[asset]['ws_predicted_rate'] = float(ctx['predFunding'])
+                        self.logger.info(f"Updated {asset} predicted funding rate: {float(ctx['predFunding']) * 100:.4f}%")
+                        
+                    if 'impactPxs' in ctx:
+                        self.assets[asset]['hl_best_bid'] = float(ctx['impactPxs'][0])
+                        self.assets[asset]['hl_best_ask'] = float(ctx['impactPxs'][1])
+                        
+                    if 'premium' in ctx:
+                        self.assets[asset]['premium'] = float(ctx['premium'])
+                        
+                    if 'oraclePx' in ctx:
+                        self.assets[asset]['oracle_px'] = float(ctx['oraclePx'])
+                        
+                    # Check conditions after receiving new data
+                    self.check_entry_conditions(asset)
+                    
         except Exception as e:
-            self.logger.error(f"Error putting message onto queue: {e}")
+            self.logger.error(f"Error in WebSocket message handler: {e}")
 
     def on_error(self, ws, error):
         """Callback for WebSocket errors."""
@@ -602,14 +636,14 @@ class ArbBotBase:
 
 
     # --- WebSocket Message Processing ---
-
+    
     def start_message_processor(self):
         """Start the background thread for processing WebSocket messages off the queue."""
         processor_thread = threading.Thread(target=self.process_websocket_messages, name=f"WSProc_{self.user_id}")
         processor_thread.daemon = True
         processor_thread.start()
         self.logger.info("WebSocket message processor thread started.")
-
+    
     def process_websocket_messages(self):
         """Continuously processes messages from the WebSocket message queue."""
         self.logger.info("WebSocket message processor running.")
@@ -799,9 +833,9 @@ class ArbBotBase:
              self.logger.debug(f"Entry Check {asset}: Skipping, historical percentiles unavailable.")
              return
         if entry_perc_value is None:
-             self.logger.error(f"Entry Check {asset}: Skipping, invalid entry strategy '{self.entry_strategy}' - percentile value not found.")
-             return
-
+            self.logger.error(f"Entry Check {asset}: Skipping, invalid entry strategy '{self.entry_strategy}' - percentile value not found.")
+            return
+            
         entry_perc_key = str(entry_perc_value) # Key in historical_percentiles is string '60', '75' etc.
         if entry_perc_key not in asset_hist_percentiles:
             self.logger.warning(f"Entry Check {asset}: Skipping, required entry percentile '{entry_perc_key}' not found in calculated historical percentiles.")
@@ -933,7 +967,7 @@ class ArbBotBase:
             # Clear candidates that were processed (successfully or not)
             # This prevents immediate re-evaluation if rates fluctuate slightly
             self.entry_candidates.difference_update(trade_sizes_usd.keys())
-
+            
         except Exception as e:
             self.logger.exception(f"Critical error during trade evaluation/execution: {e}")
             # Consider clearing candidates in case of critical error to prevent loops
@@ -988,13 +1022,13 @@ class ArbBotBase:
         else:
             # Tier 2/3: Allocate proportionally to positive funding rates
             rate_sum = sum(self.last_funding_rates[token] for token in positive_rate_tokens)
-            if rate_sum <= 0:
+        if rate_sum <= 0:
                 self.logger.warning("Sum of positive rates is zero or negative. Cannot allocate.")
                 # Fallback: Allocate to the single highest rate token
                 best_token = max(positive_rate_tokens, key=lambda t: self.last_funding_rates.get(t, -1))
                 allocations = {best_token: 1.0}
                 self.logger.info(f"Rate sum issue. Allocating 100% to highest rate: {best_token}")
-            else:
+        else:
                 allocations = {
                     token: self.last_funding_rates[token] / rate_sum
                     for token in positive_rate_tokens
@@ -1142,7 +1176,7 @@ class ArbBotBase:
 
         exit_strategy = self.exit_strategy # User's chosen strategy name ('50', 'exit_abraxas', etc.)
         asset_data = self.assets[asset]
-
+                    
         # --- 1. 'Default' / 'exit_abraxas' Predicted Rate Exit Check ---
         # These strategies use the same logic: exit if predicted rate < 0 near hour end.
         if exit_strategy in ['default', 'exit_abraxas']:
@@ -1202,11 +1236,11 @@ class ArbBotBase:
                 self.logger.info(f"⛔ Exit Trigger ({exit_strategy}) for {asset}: Current Rate {current_rate_percent:.4f}% <= Threshold {exit_threshold_rate:.4f}%")
                 self.execute_with_cooldown(self.exit_positions, asset)
                 return # Exit triggered
-        else:
+            else:
              # This case should ideally not be reached if load_custom_settings validates correctly
              self.logger.error(f"Exit Check {asset}: Encountered exit strategy '{exit_strategy}' which has no defined logic (should be None or a percentile).")
-
-
+                
+    
     # --- Position Entry/Exit Execution --- (Wrappers around original order logic)
 
     def enter_positions(self, asset: str, hl_target_usd: float, kraken_target_usd: float) -> bool:
@@ -1214,12 +1248,12 @@ class ArbBotBase:
         Orchestrates the entry into a position for a given asset, ensuring atomicity.
         Calculates QTY, places Kraken BUY, then HL SELL SHORT using Kraken's fill qty.
         Handles failures and attempts to revert.
-
+        
         Args:
             asset: The asset symbol (e.g., 'BTC').
             hl_target_usd: The target USD value for the Hyperliquid short position.
             kraken_target_usd: The target USD value for the Kraken long position.
-
+            
         Returns:
             True if both legs were successfully entered and confirmed, False otherwise.
         """
@@ -1228,12 +1262,12 @@ class ArbBotBase:
             self.logger.error(f"Entry ({asset}): Asset configuration not found.")
             return False
         asset_data = self.assets[asset]
-
+        
         # --- Ensure not already in position ---
         if asset_data.get('in_position', False):
             self.logger.warning(f"Entry ({asset}): Already marked as in position, skipping entry.")
             return False
-
+        
         # --- Get Price & Calculate Initial QTY ---
         # Use Kraken ticker as primary price source for initial QTY calc
         kraken_bid, kraken_ask = self.get_kraken_ticker(asset)
@@ -1248,14 +1282,14 @@ class ArbBotBase:
         kraken_qty_target = kraken_target_usd / entry_price_estimate
         if kraken_qty_target <= 0:
              self.logger.error(f"Entry ({asset}): Calculated Kraken Qty ({kraken_qty_target:.8f}) is not positive.")
-             return False
-
+        return False
+        
         # Check against minimum USD size for HL (as a proxy for Kraken too)
         est_kraken_usd_value = kraken_qty_target * entry_price_estimate
         if est_kraken_usd_value < self.HL_MIN_ORDER_USD:
             self.logger.warning(f"Entry ({asset}): Estimated Kraken order value ${est_kraken_usd_value:.2f} is below minimum ${self.HL_MIN_ORDER_USD}. Skipping.")
             return False
-
+        
         self.logger.info(f"Entry ({asset}): Estimated Kraken Qty = {kraken_qty_target:.8f} based on Ask Price ${entry_price_estimate:.4f}")
 
         # --- Place Kraken BUY Order ---
@@ -1336,61 +1370,70 @@ class ArbBotBase:
 
             # --- Handle HL Failure after Kraken Success (CRITICAL REVERT) ---
             if not hl_success:
-                 self.logger.critical(f"Entry ({asset}): HL leg FAILED after Kraken leg succeeded! Attempting to EMERGENCY SELL Kraken position Qty={kraken_filled_qty:.8f}...")
-                 try:
-                      # Attempt to sell back the exact Kraken quantity
-                      revert_success, _ = self.place_kraken_order(asset=asset, is_entry=False, position_size=kraken_filled_qty)
-                      if revert_success:
-                           self.logger.info(f"Entry ({asset}): Successfully reverted Kraken position after HL failure.")
-                      else:
-                           self.logger.critical(f"Entry ({asset}): FAILED TO REVERT KRAKEN POSITION after HL failure. MANUAL INTERVENTION REQUIRED! Risk Exposure! Qty={kraken_filled_qty:.8f}")
-                           # Trigger alerts! Bot state is inconsistent.
-                 except Exception as revert_e:
-                      self.logger.critical(f"Entry ({asset}): EXCEPTION during Kraken revert attempt: {revert_e}. MANUAL INTERVENTION REQUIRED! Risk Exposure! Qty={kraken_filled_qty:.8f}")
-                 return False # Return failure as the entry was not successful
+                self.logger.critical(f"Entry ({asset}): HL leg FAILED after Kraken leg succeeded! Attempting to EMERGENCY SELL Kraken position Qty={kraken_filled_qty:.8f}...")
+                try:
+                    # Attempt to sell back the exact Kraken quantity
+                    revert_success, _ = self.place_kraken_order(asset=asset, is_entry=False, position_size=kraken_filled_qty)
+                    if revert_success:
+                        self.logger.info(f"Entry ({asset}): Successfully reverted Kraken position after HL failure.")
+                    else:
+                        self.logger.critical(f"Entry ({asset}): FAILED TO REVERT KRAKEN POSITION after HL failure. MANUAL INTERVENTION REQUIRED! Risk Exposure! Qty={kraken_filled_qty:.8f}")
+                        # Trigger alerts! Bot state is inconsistent.
+                except Exception as revert_e:
+                    self.logger.critical(f"Entry ({asset}): HL leg FAILED after Kraken leg succeeded! Attempting to EMERGENCY SELL Kraken position Qty={kraken_filled_qty:.8f}...")
+                    try:
+                        # Attempt to sell back the exact Kraken quantity
+                        revert_success, _ = self.place_kraken_order(asset=asset, is_entry=False, position_size=kraken_filled_qty)
+                        if revert_success:
+                            self.logger.info(f"Entry ({asset}): Successfully reverted Kraken position after HL failure.")
+                        else:
+                            self.logger.critical(f"Entry ({asset}): FAILED TO REVERT KRAKEN POSITION after HL failure. MANUAL INTERVENTION REQUIRED! Risk Exposure! Qty={kraken_filled_qty:.8f}")
+                            # Trigger alerts! Bot state is inconsistent.
+                    except Exception as revert_e:
+                        self.logger.critical(f"Entry ({asset}): EXCEPTION during Kraken revert attempt: {revert_e}. MANUAL INTERVENTION REQUIRED! Risk Exposure! Qty={kraken_filled_qty:.8f}")
+                    return False  # Return failure as the entry was not successful
 
-        elif not kraken_success:
-             # Kraken order failed initially, no action needed for HL
-             self.logger.info(f"Entry ({asset}): Skipping HL order because Kraken BUY failed.")
-             return False
-        else: # Should not happen if kraken_success is True but kraken_filled_qty is bad/None
-             self.logger.error(f"Entry ({asset}): Inconsistent state after Kraken BUY attempt. Success={kraken_success}, FilledQty={kraken_filled_qty}. Aborting entry.")
-             return False
+            elif not kraken_success:
+                # Kraken order failed initially, no action needed for HL
+                self.logger.info(f"Entry ({asset}): Skipping HL order because Kraken BUY failed.")
+                return False
+            else:  # Should not happen if kraken_success is True but kraken_filled_qty is bad/None
+                self.logger.error(f"Entry ({asset}): Inconsistent state after Kraken BUY attempt. Success={kraken_success}, FilledQty={kraken_filled_qty}. Aborting entry.")
+                return False
 
+            # --- Final State Update on Full Success ---
+            if kraken_success and hl_success:
+                self.logger.info(f"✅ Entry ({asset}): Both legs successfully executed and verified.")
+                with self.lock:  # Lock for updating shared state
+                    asset_data['in_position'] = True
+                    asset_data['entry_timestamp'] = time.time()
+                    # Store actual filled quantities
+                    asset_data['position_size_hl_qty'] = hl_qty_target  # Should match kraken_filled_qty
+                    asset_data['position_size_kraken_qty'] = kraken_filled_qty
+                    # Calculate USD values based on Kraken fill price (HL avg price not reliably available)
+                    asset_data['position_size_hl_usd'] = hl_qty_target * kraken_avg_price if kraken_avg_price else None
+                    asset_data['position_size_kraken_usd'] = kraken_filled_qty * kraken_avg_price if kraken_avg_price else None
+                    asset_data['last_error'] = None # Clear last error on success
+                    self.active_positions.add(asset)
+                    self.entry_candidates.discard(asset) # Remove from candidates
+                self.logger.info(f"Entry ({asset}): Updated internal state. HL Qty: {asset_data['position_size_hl_qty']:.8f}, Kraken Qty: {asset_data['position_size_kraken_qty']:.8f}")
+                self.logger.info(f"Entry ({asset}): Stored USD sizes (estimated): HL=${asset_data['position_size_hl_usd']:.2f}, Kraken=${asset_data['position_size_kraken_usd']:.2f}")
+                return True
 
-        # --- Final State Update on Full Success ---
-        if kraken_success and hl_success:
-            self.logger.info(f"✅ Entry ({asset}): Both legs successfully executed and verified.")
-            with self.lock: # Lock for updating shared state
-                asset_data['in_position'] = True
-                asset_data['entry_timestamp'] = time.time()
-                # Store actual filled quantities
-                asset_data['position_size_hl_qty'] = hl_qty_target # Should match kraken_filled_qty
-                asset_data['position_size_kraken_qty'] = kraken_filled_qty
-                # Calculate USD values based on Kraken fill price (HL avg price not reliably available)
-                asset_data['position_size_hl_usd'] = hl_qty_target * kraken_avg_price if kraken_avg_price else None
-                asset_data['position_size_kraken_usd'] = kraken_filled_qty * kraken_avg_price if kraken_avg_price else None
-                asset_data['last_error'] = None # Clear last error on success
-                self.active_positions.add(asset)
-                self.entry_candidates.discard(asset) # Remove from candidates
-            self.logger.info(f"Entry ({asset}): Updated internal state. HL Qty: {asset_data['position_size_hl_qty']:.8f}, Kraken Qty: {asset_data['position_size_kraken_qty']:.8f}")
-            self.logger.info(f"Entry ({asset}): Stored USD sizes (estimated): HL=${asset_data['position_size_hl_usd']:.2f}, Kraken=${asset_data['position_size_kraken_usd']:.2f}")
-            return True
-        else:
             # Should technically not be reached if revert logic works, but as a safeguard:
             self.logger.error(f"❌ Entry ({asset}): Failed to complete position entry on both exchanges (reached end of function unexpectedly).")
             return False
-
+    
 
     def exit_positions(self, asset: str) -> bool:
         """
         Orchestrates the exit from a position for a given asset, ensuring atomicity.
         Retrieves stored QTYs, closes HL SHORT (BUY), then Kraken LONG (SELL).
         Handles failures and logs critical errors for manual intervention.
-
+        
         Args:
             asset: The asset symbol (e.g., 'BTC').
-
+            
         Returns:
             True if both legs were successfully closed, False otherwise.
         """
@@ -1399,8 +1442,8 @@ class ArbBotBase:
             self.logger.error(f"Exit ({asset}): Asset configuration not found.")
             return False
 
-        asset_data = self.assets[asset]
-
+            asset_data = self.assets[asset]
+            
         # --- Check if actually in position ---
         if not asset_data.get('in_position', False):
             self.logger.warning(f"Exit ({asset}): Request ignored, not marked as in position.")
@@ -1430,10 +1473,10 @@ class ArbBotBase:
             if hl_closed_successfully:
                  self.logger.info(f"Exit ({asset}): Hyperliquid BUY order (close short) reported success.")
             else:
-                 # close_hl_position already logs errors extensively
-                 self.logger.error(f"Exit ({asset}): close_hl_position reported failure. Halting exit process. MANUAL INTERVENTION REQUIRED for {asset}.")
-                 # Do not proceed to Kraken close if HL failed. Potential risk.
-                 return False # Exit failed
+                # close_hl_position already logs errors extensively
+                self.logger.error(f"Exit ({asset}): close_hl_position reported failure. Halting exit process. MANUAL INTERVENTION REQUIRED for {asset}.")
+                # Do not proceed to Kraken close if HL failed. Potential risk.
+                return False  # Exit failed
         except Exception as e:
             self.logger.exception(f"Exit ({asset}): Exception during close_hl_position call: {e}. Halting exit.")
             return False # Exit failed
@@ -1455,38 +1498,36 @@ class ArbBotBase:
                      # Do NOT clear the 'in_position' flag or quantities automatically.
                      asset_data['last_error'] = f"Exit failed: HL closed, Kraken SELL failed {datetime.now()}"
                      # Trigger alert!
-                     return False # Exit failed, state inconsistent
-
+                     return False  # Exit failed, state inconsistent
             except Exception as e:
-                 self.logger.exception(f"Exit ({asset}): Exception during place_kraken_order (SELL) call: {e}. HL leg was already closed.")
-                 self.logger.critical(f"Exit ({asset}): Exception during Kraken SELL after HL closed. POSITION MISMATCH! MANUAL INTERVENTION REQUIRED.")
-                 asset_data['last_error'] = f"Exit exception: HL closed, Kraken SELL error {datetime.now()}"
-                 return False # Exit failed, state inconsistent
+                self.logger.exception(f"Exit ({asset}): Exception during place_kraken_order (SELL) call: {e}. HL leg was already closed.")
+                self.logger.critical(f"Exit ({asset}): Exception during Kraken SELL after HL closed. POSITION MISMATCH! MANUAL INTERVENTION REQUIRED.")
+                asset_data['last_error'] = f"Exit exception: HL closed, Kraken SELL error {datetime.now()}"
+                return False  # Exit failed, state inconsistent
         else:
             # Should not be reached if HL close failed earlier, but as safeguard:
-             self.logger.error(f"Exit ({asset}): Logic error - Reached Kraken close section despite HL close failure.")
-             return False
-
+            self.logger.error(f"Exit ({asset}): Logic error - Reached Kraken close section despite HL close failure.")
+            return False
 
         # --- Final State Update on Full Success ---
         if hl_closed_successfully and kraken_closed_successfully:
             self.logger.info(f"✅ Exit ({asset}): Both legs successfully closed.")
-            with self.lock: # Lock for updating shared state
+            with self.lock:  # Lock for updating shared state
                 asset_data['in_position'] = False
                 asset_data['entry_timestamp'] = None
-                asset_data['position_size_hl_usd'] = None # Clear estimated USD values
+                asset_data['position_size_hl_usd'] = None  # Clear estimated USD values
                 asset_data['position_size_kraken_usd'] = None
-                asset_data['position_size_hl_qty'] = None # Clear exact QTYs
+                asset_data['position_size_hl_qty'] = None  # Clear exact QTYs
                 asset_data['position_size_kraken_qty'] = None
-                asset_data['last_error'] = None # Clear error on success
+                asset_data['last_error'] = None  # Clear error on success
                 self.active_positions.discard(asset)
                 # Keep asset in self.assets for future trades, just reset state.
             self.logger.info(f"Exit ({asset}): Cleared internal position state.")
             return True
-        else:
-            # Should not be reached if error handling above is correct
-            self.logger.error(f"❌ Exit ({asset}): Failed to complete position exit cleanly (reached end of function unexpectedly). State may be inconsistent.")
-            return False
+
+        # Should not be reached if error handling above is correct
+        self.logger.error(f"❌ Exit ({asset}): Failed to complete position exit cleanly (reached end of function unexpectedly). State may be inconsistent.")
+        return False
 
 
     # --- Helper & API Methods --- (Keep existing implementations)
@@ -1609,11 +1650,11 @@ class ArbBotBase:
         """
         Calculates historical funding rate percentiles using Hyperliquid API.
         Modified to calculate only the specifically needed percentiles.
-
+        
         Args:
             asset: The asset symbol (e.g., 'BTC').
             percentiles_needed: A set of integer percentiles required (e.g., {60, 50}).
-
+            
         Returns:
             A dictionary mapping percentile string to rate value (e.g., {'60': 0.015, '50': 0.005}),
             or None if calculation fails.
@@ -1624,46 +1665,54 @@ class ArbBotBase:
 
         self.logger.info(f"Calculating historical percentiles {list(percentiles_needed)} for {asset}...")
         try:
-            if not self.hl_info:
-                self.logger.error(f"Cannot calculate percentiles for {asset}: Hyperliquid Info client not initialized.")
-                return None
+            # Start from current time and get enough history for 500 samples
+            current_date = datetime.now()
+            end_time = int(current_date.timestamp() * 1000)
+            # Go back 20 days to ensure we get enough samples
+            start_time = end_time - (20 * 24 * 3600 * 1000)
 
-            # Fetch historical funding rates (Using logic from original example)
-            # Get data for the last ~500 hours (approx 21 days)
-            end_time = int(time.time() * 1000)
-            start_time = end_time - (500 * 60 * 60 * 1000) # 500 hours in milliseconds
-
-            # Ensure start_time is not before Hyperliquid epoch if necessary
-            # start_time = max(start_time, HYPERLIQUID_EPOCH_MS)
-
+            # Get funding history using the Info client
             funding_history = self.hl_info.funding_history(asset, start_time, end_time)
 
             if not funding_history:
-                self.logger.warning(f"No funding history returned for {asset} in the last 500 hours.")
+                self.logger.warning(f"No funding history returned for {asset} in the last 20 days.")
                 return None
 
-            # Extract rates (convert to percentage)
-            rates_percent = [float(item['fundingRate']) * 100.0 for item in funding_history if 'fundingRate' in item]
+            # Sort by timestamp in descending order (most recent first)
+            sorted_history = sorted(funding_history, key=lambda x: int(x['time']), reverse=True)
+            
+            # Take exactly 500 samples if available, otherwise take all samples
+            sample_size = min(500, len(sorted_history))
+            sorted_history = sorted_history[:sample_size]
+            
+            # Convert funding rates to percentage
+            rates = [float(entry['fundingRate']) * 100 for entry in sorted_history]
 
-            if not rates_percent:
+            if not rates:
                 self.logger.warning(f"Could not extract valid funding rates from history for {asset}.")
                 return None
 
-            self.logger.info(f"Retrieved {len(rates_percent)} historical funding rate data points for {asset}.")
+            self.logger.info(f"Retrieved {len(rates)} historical funding rate data points for {asset}.")
+            self.logger.info(f"Sample size: {sample_size}")
+            self.logger.info(f"Mean rate: {np.mean(rates):.4f}%")
+            self.logger.info(f"Max rate: {np.max(rates):.4f}%")
 
-            # Calculate percentiles using pandas/numpy
-            rates_series = pd.Series(rates_percent)
+            # Calculate percentiles
             calculated_percentiles = {}
-            # np.percentile needs a list/array of percentile values (0-100)
-            perc_values = sorted(list(percentiles_needed))
-            results = np.percentile(rates_series, perc_values)
+            for p in percentiles_needed:
+                calculated_percentiles[str(p)] = np.percentile(rates, p)
 
-            # Map results back to string keys
-            for i, p_val in enumerate(perc_values):
-                 calculated_percentiles[str(p_val)] = results[i]
-
+            # Log the results
             log_str = f"Calculated {asset} percentiles: " + ", ".join([f"{p}%: {v:.4f}" for p, v in calculated_percentiles.items()])
             self.logger.info(log_str)
+
+            # Print most recent rates for debugging
+            self.logger.info("\nMost recent funding rates:")
+            for entry in sorted_history[:5]:
+                rate = float(entry['fundingRate']) * 100
+                timestamp = datetime.fromtimestamp(int(entry['time'])/1000)
+                self.logger.info(f"{timestamp}: {rate:.4f}%")
+
             return calculated_percentiles
 
         except Exception as e:
@@ -1770,17 +1819,14 @@ class ArbBotBase:
             if not active_now:
                  self.logger.info("No active positions to close.")
             else:
-                 for asset in active_now:
-                      self.logger.info(f"Closing position for {asset} due to shutdown...")
-                      # Use the standard exit mechanism
-                      success = self.exit_positions(asset)
-                      if not success:
-                           self.logger.error(f"Failed to cleanly close position for {asset} during shutdown!")
-                           # Consider emergency close attempt if standard fails
-                           self.emergency_close_all_positions() # This might be too aggressive
-        else:
-             self.logger.info("Shutdown requested without closing active positions.")
-
+                for asset in active_now:
+                    self.logger.info(f"Closing position for {asset} due to shutdown...")
+                    # Use the standard exit mechanism
+                    if not self.exit_positions(asset):
+                        # Consider emergency close attempt if standard fails
+                        self.emergency_close_all_positions()  # This might be too aggressive
+                    else:
+                        self.logger.info("Shutdown requested without closing active positions.")
 
         # Wait for message processor thread to finish
         # (Queue processing loop should exit when self.running is False)
@@ -1904,12 +1950,12 @@ class ArbBotBase:
         """Place order on Hyperliquid using Limit Orders with depth check, retries, and fill verification.
         
         Receives the exact quantity (QTY) to trade, calculated externally based on dynamic sizing.
-
+        
         Args:
             asset: The asset symbol (e.g., 'BTC').
             is_entry: True for entry (sell short), False for exit (buy to close).
             position_size_qty: The exact quantity (QTY) of the asset to trade.
-
+            
         Returns:
             Tuple of (success_boolean, filled_avg_price_or_None) - Price may be None if not easily available from status.
         """
@@ -1942,17 +1988,20 @@ class ArbBotBase:
                 current_ask = self.assets[asset].get('hl_best_ask')
                 
                 if current_bid is None or current_ask is None:
-                     self.logger.error(f"Place HL Order ({asset}) Attempt {attempt+1}: Cannot get valid HL prices from order book.")
-                     if attempt < self.max_retries - 1: time.sleep(2); continue
-                     return False, None # Failed after retries
+                    self.logger.error(f"Place HL Order ({asset}) Attempt {attempt+1}: Cannot get valid HL prices from order book.")
+                    if attempt < self.max_retries - 1:
+                        time.sleep(2)
+                        continue
+                    return False, None  # Failed after retries
 
                 # Check depth *before* placing the order
                 has_liquidity, avg_depth_price = self.check_book_depth(asset, is_buy_flag, position_size_qty)
                 if not has_liquidity:
                     self.logger.error(f"Place HL Order ({asset}) Attempt {attempt+1}: Insufficient order book depth for size {position_size_qty:.8f}. Required depth factor: {getattr(self, 'min_order_book_depth', 1.5)}")
-                    time.sleep(5) # Wait longer if depth is the issue
-                    if attempt < self.max_retries - 1: continue
-                    return False, None # Failed after retries due to depth
+                    time.sleep(5)  # Wait longer if depth is the issue
+                    if attempt < self.max_retries - 1:
+                        continue
+                    return False, None  # Failed after retries due to depth
 
                 # --- Calculate Limit Price ---                
                 mid_price = (current_bid + current_ask) / 2.0
@@ -1970,7 +2019,7 @@ class ArbBotBase:
                     is_buy=is_buy_flag,
                     sz=position_size_qty,
                     limit_px=limit_price_str,
-                    order_type={"limit": {"tif": "Gtc"}} # Use GTC limit order
+                    order_type={"limit": {"tif": "Gtc"}}  # Use GTC limit order
                 )
                 self.logger.debug(f"HL Order Result ({asset}, Attempt {attempt+1}): {order_result}")
 
@@ -1982,68 +2031,79 @@ class ArbBotBase:
                     
                     order_id = None
                     if statuses:
-                         status_info = statuses[0] # Assuming first status is primary
-                         if isinstance(status_info, dict):
-                             if "resting" in status_info: order_id = status_info["resting"].get("oid")
-                             elif "filled" in status_info: order_id = status_info["filled"].get("oid")
-                         elif isinstance(status_info, str): # Handle simple status strings like "success"
-                              # OID might be elsewhere in response_data? Need actual examples.
-                              pass 
+                        status_info = statuses[0]  # Assuming first status is primary
+                        if isinstance(status_info, dict):
+                            if "resting" in status_info:
+                                order_id = status_info["resting"].get("oid")
+                            elif "filled" in status_info:
+                                order_id = status_info["filled"].get("oid")
+                        elif isinstance(status_info, str):  # Handle simple status strings like "success"
+                            # OID might be elsewhere in response_data? Need actual examples.
+                            pass 
                               
                     if not order_id:
-                         # Fallback: Try to find OID in a potentially different location
-                         # This needs confirmation based on real API responses
-                         self.logger.warning(f"Place HL Order ({asset}): Could not extract Order ID from statuses: {statuses}. Check response structure.")
-                         # Attempt to find oid if nested differently (example)
-                         # if response_data.get('type') == 'order' and 'order' in response_data:
-                         #    order_id = response_data['order'].get('oid') 
-                         if not order_id: 
-                              self.logger.error(f"Place HL Order ({asset}): FAILED to extract Order ID. Cannot track order. Response: {order_result}")
-                              # Treat as failure if we cannot track the order
-                              return False, None 
+                        # Fallback: Try to find OID in a potentially different location
+                        # This needs confirmation based on real API responses
+                        self.logger.warning(f"Place HL Order ({asset}): Could not extract Order ID from statuses: {statuses}. Check response structure.")
+                        # Attempt to find oid if nested differently (example)
+                        # if response_data.get('type') == 'order' and 'order' in response_data:
+                        #    order_id = response_data['order'].get('oid') 
+                        if not order_id: 
+                            self.logger.error(f"Place HL Order ({asset}): FAILED to extract Order ID. Cannot track order. Response: {order_result}")
+                            # Treat as failure if we cannot track the order
+                            return False, None 
                     
                     self.assets[asset]['current_hl_order_id'] = order_id
                     self.logger.info(f"HL order {order_id} placed successfully for {asset}. Waiting for fill...")
 
                     # --- Wait for Fill ---                    
                     fill_status, filled_size_qty = self.wait_for_hl_fill(asset, order_id)
-                    avg_fill_price = None # Placeholder, wait_for_hl_fill doesn't return price yet
+                    avg_fill_price = None  # Placeholder, wait_for_hl_fill doesn't return price yet
                     
-                    if fill_status and abs(filled_size_qty - position_size_qty) < 1e-9: # Check for full fill
+                    if fill_status and abs(filled_size_qty - position_size_qty) < 1e-9:  # Check for full fill
                         self.logger.info(f"✅ HL order {order_id} ({asset}) confirmed FULLY filled ({filled_size_qty:.8f} Qty).")
                         # --- Verify Position --- 
                         if self.verify_hl_position(asset, filled_size_qty, is_entry):
-                             self.assets[asset]['current_hl_order_id'] = None # Clear OID on success
-                             return True, avg_fill_price # Success!
+                            self.assets[asset]['current_hl_order_id'] = None  # Clear OID on success
+                            return True, avg_fill_price  # Success!
                         else:
-                             self.logger.error(f"Place HL Order ({asset}): Position verification FAILED after fill! Manual check needed.")
-                             self.assets[asset]['current_hl_order_id'] = None
-                             return False, None # Treat as failure
-                    elif fill_status: # Partially filled before timeout
+                            self.logger.error(f"Place HL Order ({asset}): Position verification FAILED after fill! Manual check needed.")
+                            self.assets[asset]['current_hl_order_id'] = None
+                            return False, None  # Treat as failure
+                    elif fill_status:  # Partially filled before timeout
                         self.logger.warning(f"HL order {order_id} ({asset}) only PARTIALLY filled ({filled_size_qty:.8f} / {position_size_qty:.8f}) within timeout. Attempting to cancel...")
                         self.cancel_hl_order(asset, order_id)
                         self.assets[asset]['current_hl_order_id'] = None
                         # Treat partial fill as failure for this strategy? Or try to adjust other leg?
                         # For now, treating as failure and letting retry loop handle it.
-                        if attempt < self.max_retries - 1: continue
-                        else: return False, None # Failed after retries
-                    else: # fill_status is False (timeout with potentially zero or partial fill)
+                        if attempt < self.max_retries - 1:
+                            continue
+                        else:
+                            return False, None  # Failed after retries
+                    else:  # fill_status is False (timeout with potentially zero or partial fill)
                         self.logger.warning(f"HL order {order_id} ({asset}) did not fill within timeout (Last Filled: {filled_size_qty:.8f}). Attempting to cancel...")
-                        self.cancel_hl_order(asset, order_id) # Attempt cancellation regardless
+                        self.cancel_hl_order(asset, order_id)  # Attempt cancellation regardless
                         self.assets[asset]['current_hl_order_id'] = None
-                        if attempt < self.max_retries - 1: continue
-                        else: return False, None # Failed after retries
+                        if attempt < self.max_retries - 1:
+                            continue
+                        else:
+                            return False, None  # Failed after retries
                 else:
                     # API call itself failed
                     error_details = order_result.get("response", "No response field")
                     self.logger.error(f"HL Order placement API call failed for {asset} (Attempt {attempt+1}). Status: {order_result.get('status')}, Error: {error_details}")
-                    if attempt < self.max_retries - 1: time.sleep(1); continue
-                    else: return False, None # Failed after retries
-            
+                    if attempt < self.max_retries - 1:
+                        time.sleep(1)
+                        continue
+                    else:
+                        return False, None  # Failed after retries
             except Exception as e:
                 self.logger.exception(f"Unexpected error during HL order placement for {asset} (Attempt {attempt+1}): {e}")
-                if attempt < self.max_retries - 1: time.sleep(1); continue
-                else: return False, None # Failed after retries
+                if attempt < self.max_retries - 1:
+                    time.sleep(1)
+                    continue
+                else:
+                    return False, None  # Failed after retries
 
         # Should only be reached if all retries fail
         self.logger.error(f"❌ HL order placement for {asset} failed definitively after {self.max_retries} attempts.")
@@ -2068,19 +2128,27 @@ class ArbBotBase:
             bids = []
             asks = []
             # Safely parse bids
-            for level in l2_book_data['levels'][0]: # bids are first element
-                 try: bids.append((float(level[0]), float(level[1])))
-                 except (ValueError, TypeError, IndexError): self.logger.warning(f"Get HL Order Book ({asset}): Invalid bid level format: {level}"); continue
+            for level in l2_book_data['levels'][0]:  # bids are first element
+                try:
+                    bids.append((float(level[0]), float(level[1])))
+                except (ValueError, TypeError, IndexError):
+                    self.logger.warning(f"Get HL Order Book ({asset}): Invalid bid level format: {level}")
+                    continue
             # Safely parse asks
-            for level in l2_book_data['levels'][1]: # asks are second element
-                 try: asks.append((float(level[0]), float(level[1])))
-                 except (ValueError, TypeError, IndexError): self.logger.warning(f"Get HL Order Book ({asset}): Invalid ask level format: {level}"); continue
+            for level in l2_book_data['levels'][1]:  # asks are second element
+                try:
+                    asks.append((float(level[0]), float(level[1])))
+                except (ValueError, TypeError, IndexError):
+                    self.logger.warning(f"Get HL Order Book ({asset}): Invalid ask level format: {level}")
+                    continue
 
             # Update best bid/ask in asset state (use lock for thread safety)
             with self.lock:
                 if asset in self.assets:
-                     if bids: self.assets[asset]['hl_best_bid'] = bids[0][0]
-                     if asks: self.assets[asset]['hl_best_ask'] = asks[0][0]
+                    if bids:
+                        self.assets[asset]['hl_best_bid'] = bids[0][0]
+                    if asks:
+                        self.assets[asset]['hl_best_ask'] = asks[0][0]
 
             return {'bids': bids, 'asks': asks}
         except Exception as e:
@@ -2091,11 +2159,11 @@ class ArbBotBase:
         """Checks if there's enough liquidity in the HL order book for a given size."""
         self.logger.debug(f"Checking HL book depth for {asset}: Side={'Buy' if is_buy else 'Sell'}, Size={size_qty:.8f}")
         try:
-            book = self.get_hl_order_book(asset, depth=20) # Fetch reasonable depth
+            book = self.get_hl_order_book(asset, depth=20)  # Fetch reasonable depth
             if not book:
                 self.logger.warning(f"Check HL Depth ({asset}): Failed to get order book.")
                 return False, 0.0
-
+            
             levels = book['asks'] if is_buy else book['bids']
             # Use min_order_book_depth defined in __init__ (ensure it's set, e.g., 1.5)
             min_depth_multiplier = getattr(self, 'min_order_book_depth', 1.5)
@@ -2106,7 +2174,8 @@ class ArbBotBase:
 
             for price, level_size in levels:
                 size_from_this_level = min(level_size, required_size_with_buffer - cumulative_size)
-                if size_from_this_level <= 1e-9: continue # Skip negligible amounts
+                if size_from_this_level <= 1e-9:
+                    continue  # Skip negligible amounts
 
                 weighted_price_sum += price * size_from_this_level
                 cumulative_size += size_from_this_level
@@ -2118,7 +2187,8 @@ class ArbBotBase:
                 self.logger.warning(f"Check HL Depth ({asset}): Insufficient liquidity. Required={required_size_with_buffer:.8f}, Available={cumulative_size:.8f}")
                 return False, 0.0
 
-            if cumulative_size <= 1e-9: return False, 0.0 # Avoid division by zero
+            if cumulative_size <= 1e-9:
+                return False, 0.0  # Avoid division by zero
 
             avg_price = weighted_price_sum / cumulative_size
             px_precision = self.assets[asset]['spec'].get('price_precision', 4)
@@ -2127,7 +2197,7 @@ class ArbBotBase:
         except Exception as e:
             self.logger.exception(f"Error checking HL order book depth for {asset}: {e}")
             return False, 0.0
-        
+    
     def wait_for_hl_fill(self, asset: str, order_id: int) -> Tuple[bool, float]:
         """Wait for Hyperliquid order to fill using get_order_status."""
         # Adapted from BTCArbBot, parameterized for asset/oid
@@ -2135,7 +2205,7 @@ class ArbBotBase:
         start_time = time.time()
         last_known_filled_size = 0.0
         last_logged_fill_size = -1.0 # Track last logged size to reduce log spam
-
+        
         while time.time() - start_time < self.order_timeout:
             try:
                 if not self.hl_exchange:
@@ -2165,7 +2235,7 @@ class ArbBotBase:
                      self.logger.error(f"Wait HL Fill ({order_id}): Could not parse sizes: filled='{current_filled_size_str}', total='{total_size_str}'")
                      time.sleep(2)
                      continue
-
+                    
                 # Log partial fills if size increased, but not too frequently
                 if status == 'open' and current_filled_size > last_logged_fill_size:
                      fill_percent = (current_filled_size / total_size) * 100 if total_size > 0 else 0
@@ -2218,17 +2288,17 @@ class ArbBotBase:
             if actual_size_qty is None:
                 self.logger.error(f"Verify HL Position ({asset}): Failed to get current position size for verification.")
                 return False
-
+                
             # Define a small tolerance for comparison
             tolerance = 0.000001 # Adjust if needed
-
+            
             if abs(actual_size_qty - target_size_signed) < tolerance:
                 self.logger.info(f"✅ Verify HL Position ({asset}): Actual size {actual_size_qty:.8f} matches target {target_size_signed:.8f}.")
                 return True
             else:
                 self.logger.error(f"❌ Verify HL Position ({asset}): Mismatch! Target={target_size_signed:.8f}, Actual={actual_size_qty:.8f}")
                 return False
-
+                
         except Exception as e:
             self.logger.exception(f"Error verifying HL position for {asset}: {e}")
             return False
@@ -2287,8 +2357,8 @@ class ArbBotBase:
              return False, None
 
         order_type = 'buy' if is_entry else 'sell'
-        trade_type = 'market' # Using market orders for simplicity in placeholder
-
+        trade_type = 'market'  # Using market orders for simplicity in placeholder
+        
         data = {
             "nonce": str(int(1000*time.time())),
             "ordertype": trade_type,
@@ -2321,9 +2391,9 @@ class ArbBotBase:
                 self.logger.error(f"Kraken order placement for {asset} did not return transaction ID.")
                 return False, None
         else:
-            error_msg = result.get('error', ['Unknown Kraken order error'])
-            self.logger.error(f"Kraken order placement failed for {asset}: {error_msg}")
-            return False, None
+             error_msg = result.get('error', ['Unknown Kraken order error'])
+             self.logger.error(f"Kraken order placement failed for {asset}: {error_msg}")
+             return False, None
 
 
     def wait_for_kraken_fill(self, asset: str, order_txid: str) -> Tuple[bool, Optional[float]]:
@@ -2434,7 +2504,7 @@ class ArbBotBase:
              self.logger.error(f"❌ Close HL ({asset}): Failed to place/fill/verify BUY order to close short. Position may still be open. Manual intervention likely needed.")
              # Consider triggering emergency alerts/actions here if needed
              return False
-
+    
     def get_hl_position_size(self, asset: str) -> Optional[float]:
         """
         Gets the current position size for an asset from Hyperliquid API.
@@ -2454,15 +2524,15 @@ class ArbBotBase:
                      size_str = position_info.get('szi', '0')
                      return float(size_str)
                 else:
-                     # No position found for this asset
-                     return 0.0
+                    # No position found for this asset
+                    return 0.0
             else:
-                 self.logger.warning(f"Could not find 'assetPositions' in user_state for {self.hl_wallet}")
-                 return None
+                self.logger.warning(f"Could not find 'assetPositions' in user_state for {self.hl_wallet}")
+                return None
         except Exception as e:
             self.logger.exception(f"Error getting HL position size for {asset}: {e}")
             return None
-
+    
 
     def execute_with_cooldown(self, func, *args, **kwargs):
         """(Placeholder - Requires Actual Implementation)"""
@@ -2542,78 +2612,25 @@ class ArbBotBase:
         # Consider adding more alerting mechanisms here (e.g., Telegram)
 
     def check_margin_levels(self):
-        """Checks Hyperliquid margin levels against configured minimums."""
-        self.logger.debug("Checking margin levels...")
-        if not self.hl_info or not self.hl_wallet:
-            self.logger.warning("Check Margin: HL Info client or wallet not initialized.")
-            return # Cannot check
-        
-        # Check interval to avoid spamming API
-        now = time.time()
-        if now - self.last_margin_check_time < self.margin_check_interval:
-            return # Check not due yet
-        self.last_margin_check_time = now
-
+        """Check margin levels and update available margin"""
         try:
+            if not self.hl_info or not self.hl_wallet:
+                self.logger.error("Cannot check margin: Hyperliquid Info client or wallet not initialized")
+                return
+
+            # Get user state which contains margin info
             user_state = self.hl_info.user_state(self.hl_wallet)
             if not user_state or 'marginSummary' not in user_state:
-                self.logger.warning(f"Check Margin: Could not get user_state or marginSummary for {self.hl_wallet}.")
+                self.logger.error("Failed to get user state or margin summary")
                 return
 
             margin_summary = user_state['marginSummary']
-            # Extract relevant values (keys might differ slightly based on API version)
-            account_value_str = margin_summary.get('accountValue')
-            total_raw_usd_str = margin_summary.get('totalRawUsd') # Total position value component?
-            total_maint_margin_str = margin_summary.get('totalMaintenanceMargin')
-            total_init_margin_str = margin_summary.get('totalInitialMargin')
-            
-            if account_value_str is None or total_maint_margin_str is None:
-                self.logger.warning(f"Check Margin: Missing required fields (accountValue, totalMaintenanceMargin) in marginSummary: {margin_summary}")
-                return
-
-            account_value = float(account_value_str)
-            total_maint_margin = float(total_maint_margin_str)
-            
-            # Calculate Margin Ratio (Example: Maintenance Margin Ratio)
-            # Formula: (Account Value - Total Initial Margin) / Account Value  ?? OR
-            # Formula: Account Value / Total Maintenance Margin ??  <- Check HL Docs for correct definition!
-            # Let's assume a simpler check for now: if maint margin > account value, that's bad.
-            # A more robust check involves margin fractions or ratios defined by HL.
-            
-            margin_ratio = None
-            if total_maint_margin > 1e-9: # Avoid division by zero if no positions
-                # Example ratio: Account Value relative to Maintenance Margin Requirement
-                # A value < 1 would indicate insufficient margin. 
-                # This might not be the exact definition HL uses (e.g., they might use leverage or init margin)
-                # *** CONSULT HYPERLIQUID DOCUMENTATION FOR THE CORRECT MARGIN RATIO CALCULATION ***
-                margin_ratio = account_value / total_maint_margin 
-            elif account_value > 0: 
-                margin_ratio = float('inf') # Effectively infinite margin if no maint req
-            
-            self.logger.info(f"Margin Check: Account Value=${account_value:.2f}, Maint. Margin Req=${total_maint_margin:.2f}, Calculated Ratio={margin_ratio:.2f if margin_ratio is not None else 'N/A'}")
-
-            # Check against the minimum threshold
-            # *** ADJUST THE CONDITION BASED ON THE CORRECT MARGIN RATIO DEFINITION ***
-            # If margin_ratio = AccountValue / MaintMargin, then ratio < 1 is liquidation territory.
-            # We need a buffer, so check against self.min_margin_ratio (e.g., 1.15 means 15% buffer over maint.)
-            # If HL uses a different ratio (e.g., maint margin fraction), the check will be different.
-            # Assuming AccountValue / MaintMargin ratio for now:
-            min_ratio_threshold = 1.0 + self.min_margin_ratio # e.g., 1.15 if min_margin_ratio is 0.15
-            
-            if margin_ratio is not None and margin_ratio < min_ratio_threshold:
-                 self.logger.critical(f"!!! LOW MARGIN WARNING !!! Account Value ${account_value:.2f} / Maint. Margin ${total_maint_margin:.2f} = Ratio {margin_ratio:.3f} < Threshold {min_ratio_threshold:.3f}")
-                 # --- Take Action --- 
-                 # Option 1: Prevent new trades
-                 self.logger.warning("Low margin detected. Halting new trade entries.")
-                 # Add a flag maybe: self.halt_new_entries = True
-                 # Option 2: Trigger Emergency Close
-                 self.logger.critical("Low margin threshold breached. Triggering EMERGENCY CLOSE of all positions!")
-                 self.emergency_close_all_positions() # Call the emergency handler
+            if 'totalRawUsd' in margin_summary:
+                self.available_margin = float(margin_summary['totalRawUsd'])
+                self.logger.info(f"Updated available margin: ${self.available_margin:.2f}")
             else:
-                 self.logger.info("Margin levels OK.")
+                self.logger.warning(f"Missing totalRawUsd in marginSummary: {margin_summary}")
 
-        except ValueError as e:
-            self.logger.error(f"Check Margin: Error converting margin data to float: {e} - Data: {margin_summary}")
         except Exception as e:
             self.logger.exception(f"Error checking margin levels: {e}")
 

@@ -156,7 +156,7 @@ class BotService:
         except Exception as e:
             logger.error(f"Failed to create/update config for user {user_id_str}: {str(e)}")
             raise # Re-raise the exception to be caught by the caller
-
+            
     def start_bot_instance(self, user_id_str: str) -> bool:
         """
         Starts or restarts a bot instance for a given user using data from the database.
@@ -198,7 +198,7 @@ class BotService:
         if not api_keys:
             logger.error(f"Failed to retrieve or decrypt API keys for user {user_id_str}. Cannot start bot.")
             return False
-
+                
         # --- 3. Create/Update Config File ---
         try:
             config_path = self.create_config(
@@ -265,7 +265,7 @@ class BotService:
             bot_thread = threading.Thread(target=bot.run, name=f"ArbBot_{user_id_str}")
             bot_thread.daemon = True
             bot_thread.start()
-
+            
             # Store bot instance and metadata
             self.running_bots[user_id_str] = {
                 'bot': bot,
@@ -280,15 +280,15 @@ class BotService:
             # Update DB status
             self.db.update_bot_status(telegram_id, is_running=True, start_time=datetime.now())
             return True # Report success
-
+            
         except Exception as e:
              logger.exception(f"Failed to start bot thread for user {user_id_str}: {e}")
              # Attempt cleanup
              bot.shutdown(emergency=True) # Tell bot object to clean up if possible
              self.running_bots[user_id_str] = None
              self.db.update_bot_status(telegram_id, is_running=False, stop_time=datetime.now())
-             return False
-
+        return False
+            
     def stop_bot(self, user_id_str: str) -> bool:
         """
         Stop bot for the specified user.
@@ -348,7 +348,7 @@ class BotService:
                 try: self.db.update_bot_status(int(user_id_str), is_running=False, stop_time=datetime.now())
                 except ValueError: pass
                 return True
-
+                
             except Exception as e:
                 logger.exception(f"Error during graceful shutdown for user {user_id_str}: {e}")
                 # Force cleanup if error occurred
@@ -362,7 +362,7 @@ class BotService:
             try: self.db.update_bot_status(int(user_id_str), is_running=False)
             except ValueError: pass
             return True # Return True as the desired state (not running) is achieved
-
+                
     def get_bot_status(self, user_id_str: str) -> Optional[Dict[str, Any]]:
         """
         Get status of the bot for the specified user.
@@ -373,39 +373,115 @@ class BotService:
         Returns:
             Dictionary with bot status details, or None if bot not found/running.
         """
-        if user_id_str in self.running_bots:
-            bot_info = self.running_bots[user_id_str]
-            bot = bot_info.get('bot')
-            thread = bot_info.get('thread')
-            status = {
-                'user_id': user_id_str,
-                'is_running': bool(bot and thread and thread.is_alive() and bot.running),
-                'tier': bot_info.get('tier'),
-                'start_time': bot_info.get('start_time'),
-                'selected_tokens': bot_info.get('selected_tokens'),
-                'strategies': bot_info.get('strategies'), # Include strategies
-                'thread_alive': bool(thread and thread.is_alive()),
-                'bot_running_flag': bool(bot and bot.running),
-                'active_positions': list(bot.active_positions) if bot else [],
-                'last_error': bot.assets[list(bot.active_positions)[0]]['last_error'] if bot and bot.active_positions and list(bot.active_positions)[0] in bot.assets else None # Example error reporting
-            }
-            # You might want to add more detailed state from the bot object itself
-            # e.g., current balances, PnL, recent errors, last funding rates
-            # Be careful not to block the Telegram bot by calling slow methods here.
-            return status
-        else:
-            # Check DB for potentially stale status
+        try:
+            # First check if bot is running in service
+            if user_id_str in self.running_bots:
+                bot_info = self.running_bots[user_id_str]
+                bot = bot_info.get('bot')
+                thread = bot_info.get('thread')
+                
+                # Get basic status
+                status = {
+                    'user_id': user_id_str,
+                    'is_running': bool(bot and thread and thread.is_alive() and bot.running),
+                    'tier': bot_info.get('tier'),
+                    'start_time': bot_info.get('start_time'),
+                    'selected_tokens': bot_info.get('selected_tokens'),
+                    'strategies': bot_info.get('strategies'),
+                    'thread_alive': bool(thread and thread.is_alive()),
+                    'bot_running_flag': bool(bot and bot.running)
+                }
+                
+                # Add positions if bot is running
+                if bot and bot.running:
+                    status['positions'] = {}
+                    status['balances'] = {}
+                    status['funding_rates'] = {}
+                    
+                    # Get positions
+                    for asset in bot.assets:
+                        if bot.assets[asset]['in_position']:
+                            status['positions'][asset] = {
+                                'hl_position': bot.assets[asset]['hl_position_size'],
+                                'kraken_position': bot.assets[asset]['kraken_position_size']
+                            }
+                    
+                    # Get balances
+                    try:
+                        balances = bot.check_balances()
+                        status['balances'] = {
+                            'Hyperliquid': balances.get('hyperliquid', 0),
+                            'Kraken': balances.get('kraken', 0)
+                        }
+                    except Exception as e:
+                        logger.error(f"Error getting balances: {e}")
+                        status['balances'] = {
+                            'Hyperliquid': 'Error fetching',
+                            'Kraken': 'Error fetching'
+                        }
+                    
+                    # Get funding rates
+                    for asset in bot.assets:
+                        if 'ws_funding_rate' in bot.assets[asset] and bot.assets[asset]['ws_funding_rate'] is not None:
+                            status['funding_rates'][asset] = bot.assets[asset]['ws_funding_rate'] * 100
+                        elif asset in bot.last_funding_rates:
+                            status['funding_rates'][asset] = bot.last_funding_rates[asset]
+                    
+                    # Get strategies
+                    if hasattr(bot, 'entry_strategy') and hasattr(bot, 'exit_strategy'):
+                        status['strategies'] = {
+                            'entry_strategy': bot.entry_strategy,
+                            'exit_strategy': bot.exit_strategy
+                        }
+                
+                return status
+            
+            # If not in running_bots, check DB status
             try:
                 db_status = self.db.get_bot_status(int(user_id_str))
                 if db_status and db_status.is_running:
-                     # DB says running, but service doesn't know -> likely crashed/restarted
-                     logger.warning(f"Inconsistent state for user {user_id_str}: DB shows running, but bot_service has no instance.")
-                     return {'user_id': user_id_str, 'is_running': False, 'status_detail': 'Inconsistent state (DB running, Service stopped)'}
-            except ValueError: pass
-            except Exception as e: logger.error(f"Error checking DB status for user {user_id_str}: {e}")
+                    # DB says running but service doesn't have instance - likely crashed/restarted
+                    logger.warning(f"Inconsistent state for user {user_id_str}: DB shows running, but bot_service has no instance.")
+                    return {
+                        'user_id': user_id_str,
+                        'is_running': False,
+                        'status_detail': 'Bot appears to have stopped unexpectedly. Please restart with /start_bot',
+                        'balances': {
+                            'Hyperliquid': 'Bot not running',
+                            'Kraken': 'Bot not running'
+                        },
+                        'positions': {},
+                        'funding_rates': {},
+                        'strategies': {
+                            'entry_strategy': 'default',
+                            'exit_strategy': 'default'
+                        }
+                    }
+            except ValueError:
+                logger.error(f"Invalid user_id format: {user_id_str}")
+            except Exception as e:
+                logger.error(f"Error checking DB status for user {user_id_str}: {e}")
 
-            return {'user_id': user_id_str, 'is_running': False, 'status_detail': 'Not running'}
-
+            # Default return for non-running bot
+            return {
+                'user_id': user_id_str,
+                'is_running': False,
+                'status_detail': 'Not running',
+                'balances': {
+                    'Hyperliquid': 'Bot not running',
+                    'Kraken': 'Bot not running'
+                },
+                'positions': {},
+                'funding_rates': {},
+                'strategies': {
+                    'entry_strategy': 'default',
+                    'exit_strategy': 'default'
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error in get_bot_status for user {user_id_str}: {e}")
+            return None
+        
     def list_active_bots(self) -> Dict[str, Dict[str, Any]]:
         """List all currently active bot instances managed by this service."""
         active_bots_summary = {}
