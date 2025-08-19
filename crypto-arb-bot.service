@@ -1,0 +1,33 @@
+[Unit]
+Description=Crypto Arbitrage Bot Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=crypto-bot
+Group=crypto-bot
+WorkingDirectory=/opt/crypto-arb-bot
+Environment=PYTHONPATH=/opt/crypto-arb-bot
+Environment=SERVER_SOFTWARE=gunicorn
+EnvironmentFile=/opt/crypto-arb-bot/.env
+
+ExecStart=/opt/crypto-arb-bot/venv/bin/gunicorn \
+    --config /opt/crypto-arb-bot/gunicorn_config.py \
+    telegram_bot:web_app
+
+Restart=always
+RestartSec=10
+StartLimitInterval=0
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+
+[Install]
+WantedBy=multi-user.target 

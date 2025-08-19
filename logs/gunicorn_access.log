@@ -1,0 +1,5 @@
+127.0.0.1 - - [25/Apr/2025:18:09:07 +0000] "GET /webhook/test?user_id=123456789&tier=2 HTTP/1.1" 200 133 "-" "curl/7.81.0"
+138.197.119.176 - - [25/Apr/2025:18:22:43 +0000] "POST /webhook/boomfi HTTP/1.1" 200 47 "-" "curl/7.81.0"
+174.108.43.89 - - [25/Apr/2025:19:32:40 +0000] "GET / HTTP/1.0" 404 207 "-" "curl/7.88.1"
+127.0.0.1 [26/Apr/2025:00:23:46 +0000] "GET /webhook/test_notification?user_id=123456789&tier=1 HTTP/1.1" 500 218 "-" "curl/7.81.0"
+127.0.0.1 [26/Apr/2025:00:25:16 +0000] "GET /webhook/test_notification?user_id=8067678355&tier=1 HTTP/1.1" 200 195 "-" "curl/7.81.0"

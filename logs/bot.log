@@ -1,0 +1,814 @@
+2025-04-25 23:23:03,924 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:23:03,927 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:23:03,928 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:23:03,928 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:23:03,928 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:23:03,928 - __main__ - WARNING - Firebase not initialized - real-time notifications disabled
+ * Serving Flask app 'webhook_server'
+ * Debug mode: off
+2025-04-25 23:23:04,004 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on https://127.0.0.1:8443
+ * Running on https://138.197.119.176:8443
+2025-04-25 23:23:04,005 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+[2025-04-25 23:26:17 +0000] [862347] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:26:17 +0000] [862347] [INFO] Listening at: http://0.0.0.0:8443 (862347)
+[2025-04-25 23:26:17 +0000] [862347] [INFO] Using worker: sync
+[2025-04-25 23:26:17 +0000] [862348] [INFO] Booting worker with pid: 862348
+2025-04-25 23:26:19,314 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:26:19,317 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:26:19,317 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:26:19,317 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:26:19,317 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:26:19,317 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-25 23:26:36 +0000] [862347] [INFO] Handling signal: term
+[2025-04-25 23:26:36 +0000] [862348] [INFO] Worker exiting (pid: 862348)
+[2025-04-25 23:26:37 +0000] [862347] [INFO] Shutting down: Master
+[2025-04-25 23:26:49 +0000] [862366] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:26:49 +0000] [862366] [INFO] Listening at: http://0.0.0.0:8443 (862366)
+[2025-04-25 23:26:49 +0000] [862366] [INFO] Using worker: sync
+[2025-04-25 23:26:49 +0000] [862367] [INFO] Booting worker with pid: 862367
+2025-04-25 23:26:51,202 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:26:51,205 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:26:51,206 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:26:51,206 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:26:51,206 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:26:51,206 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-25 23:31:02 +0000] [862366] [INFO] Handling signal: term
+[2025-04-25 23:31:02 +0000] [862367] [INFO] Worker exiting (pid: 862367)
+[2025-04-25 23:31:03 +0000] [862366] [INFO] Shutting down: Master
+[2025-04-25 23:54:48 +0000] [862597] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:54:48 +0000] [862597] [INFO] Listening at: http://0.0.0.0:8443 (862597)
+[2025-04-25 23:54:48 +0000] [862597] [INFO] Using worker: sync
+[2025-04-25 23:54:48 +0000] [862598] [INFO] Booting worker with pid: 862598
+2025-04-25 23:54:50,611 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:54:50,613 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:54:50,614 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:54:50,614 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:54:50,614 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:54:50,614 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Failed to find attribute 'app' in 'webhook_server'.
+[2025-04-25 23:54:50 +0000] [862598] [INFO] Worker exiting (pid: 862598)
+[2025-04-25 23:54:50 +0000] [862597] [ERROR] Worker (pid:862598) exited with code 4
+[2025-04-25 23:54:50 +0000] [862597] [ERROR] Shutting down: Master
+[2025-04-25 23:54:50 +0000] [862597] [ERROR] Reason: App failed to load.
+[2025-04-25 23:54:53 +0000] [862600] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:54:53 +0000] [862600] [INFO] Listening at: http://0.0.0.0:8443 (862600)
+[2025-04-25 23:54:53 +0000] [862600] [INFO] Using worker: sync
+[2025-04-25 23:54:53 +0000] [862601] [INFO] Booting worker with pid: 862601
+2025-04-25 23:54:54,848 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:54:54,850 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:54:54,851 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:54:54,851 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:54:54,851 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:54:54,851 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Failed to find attribute 'app' in 'webhook_server'.
+[2025-04-25 23:54:54 +0000] [862601] [INFO] Worker exiting (pid: 862601)
+[2025-04-25 23:54:55 +0000] [862600] [ERROR] Worker (pid:862601) exited with code 4
+[2025-04-25 23:54:55 +0000] [862600] [ERROR] Shutting down: Master
+[2025-04-25 23:54:55 +0000] [862600] [ERROR] Reason: App failed to load.
+[2025-04-25 23:54:58 +0000] [862603] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:54:58 +0000] [862603] [INFO] Listening at: http://0.0.0.0:8443 (862603)
+[2025-04-25 23:54:58 +0000] [862603] [INFO] Using worker: sync
+[2025-04-25 23:54:58 +0000] [862604] [INFO] Booting worker with pid: 862604
+[2025-04-25 23:54:59 +0000] [862603] [INFO] Handling signal: term
+2025-04-25 23:55:00,860 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:55:00,862 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:55:00,866 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:55:00,867 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:55:00,867 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:55:00,867 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Failed to find attribute 'app' in 'webhook_server'.
+[2025-04-25 23:55:00 +0000] [862604] [INFO] Worker exiting (pid: 862604)
+[2025-04-25 23:55:02 +0000] [862603] [ERROR] Worker (pid:862604) exited with code 4
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 223, in run
+    handler()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 256, in handle_term
+    raise StopIteration
+StopIteration
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 226, in run
+    self.halt()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 532, in reap_workers
+    raise HaltServer(reason, self.APP_LOAD_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'App failed to load.' 4>
+[2025-04-25 23:55:02 +0000] [862609] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:55:02 +0000] [862609] [INFO] Listening at: http://0.0.0.0:8443 (862609)
+[2025-04-25 23:55:02 +0000] [862609] [INFO] Using worker: sync
+[2025-04-25 23:55:02 +0000] [862610] [INFO] Booting worker with pid: 862610
+2025-04-25 23:55:04,312 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:55:04,315 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:55:04,316 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:55:04,316 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:55:04,316 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:55:04,316 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Failed to find attribute 'app' in 'webhook_server'.
+[2025-04-25 23:55:04 +0000] [862610] [INFO] Worker exiting (pid: 862610)
+[2025-04-25 23:55:04 +0000] [862609] [ERROR] Worker (pid:862610) exited with code 4
+[2025-04-25 23:55:04 +0000] [862609] [ERROR] Shutting down: Master
+[2025-04-25 23:55:04 +0000] [862609] [ERROR] Reason: App failed to load.
+[2025-04-25 23:55:08 +0000] [862612] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:55:08 +0000] [862612] [INFO] Listening at: http://0.0.0.0:8443 (862612)
+[2025-04-25 23:55:08 +0000] [862612] [INFO] Using worker: sync
+[2025-04-25 23:55:08 +0000] [862613] [INFO] Booting worker with pid: 862613
+2025-04-25 23:55:10,807 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:55:10,810 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:55:10,811 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:55:10,811 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:55:10,811 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:55:10,811 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Failed to find attribute 'app' in 'webhook_server'.
+[2025-04-25 23:55:10 +0000] [862613] [INFO] Worker exiting (pid: 862613)
+[2025-04-25 23:55:11 +0000] [862612] [ERROR] Worker (pid:862613) exited with code 4
+[2025-04-25 23:55:11 +0000] [862612] [ERROR] Shutting down: Master
+[2025-04-25 23:55:11 +0000] [862612] [ERROR] Reason: App failed to load.
+[2025-04-25 23:58:41 +0000] [862702] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:58:41 +0000] [862702] [INFO] Listening at: http://0.0.0.0:8443 (862702)
+[2025-04-25 23:58:41 +0000] [862702] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-25 23:58:41 +0000] [862706] [INFO] Booting worker with pid: 862706
+[2025-04-25 23:58:41 +0000] [862702] [INFO] Handling signal: term
+2025-04-25 23:58:44,628 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:58:44,629 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:58:44,630 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:58:44,630 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:58:44,630 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:58:44,630 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-25 23:58:45 +0000] [862706] [INFO] Worker exiting (pid: 862706)
+[2025-04-25 23:58:46 +0000] [862702] [INFO] Shutting down: Master
+[2025-04-25 23:58:46 +0000] [862708] [INFO] Starting gunicorn 23.0.0
+[2025-04-25 23:58:46 +0000] [862708] [INFO] Listening at: http://0.0.0.0:8443 (862708)
+[2025-04-25 23:58:46 +0000] [862708] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-25 23:58:46 +0000] [862709] [INFO] Booting worker with pid: 862709
+2025-04-25 23:58:48,565 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-25 23:58:48,567 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-25 23:58:48,568 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-25 23:58:48,568 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-25 23:58:48,568 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-25 23:58:48,568 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-26 00:06:23 +0000] [862708] [INFO] Handling signal: term
+[2025-04-26 00:06:24 +0000] [862709] [INFO] Worker exiting (pid: 862709)
+[2025-04-26 00:06:25 +0000] [862708] [INFO] Shutting down: Master
+[2025-04-26 00:07:06 +0000] [862904] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:07:06 +0000] [862904] [INFO] Listening at: http://0.0.0.0:8443 (862904)
+[2025-04-26 00:07:06 +0000] [862904] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:07:06 +0000] [862908] [INFO] Booting worker with pid: 862908
+[2025-04-26 00:07:06 +0000] [862904] [INFO] Handling signal: term
+2025-04-26 00:07:10,682 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:07:10,688 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:07:10,689 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:07:10,689 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:07:10,689 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:07:10,689 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-26 00:07:11 +0000] [862908] [INFO] Worker exiting (pid: 862908)
+[2025-04-26 00:07:12 +0000] [862904] [INFO] Shutting down: Master
+[2025-04-26 00:07:13 +0000] [862910] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:07:13 +0000] [862910] [INFO] Listening at: http://0.0.0.0:8443 (862910)
+[2025-04-26 00:07:13 +0000] [862910] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:07:13 +0000] [862911] [INFO] Booting worker with pid: 862911
+2025-04-26 00:07:14,980 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:07:14,983 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:07:14,983 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:07:14,983 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:07:14,984 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:07:14,984 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+[2025-04-26 00:16:20 +0000] [862910] [INFO] Handling signal: term
+[2025-04-26 00:16:20 +0000] [862911] [INFO] Worker exiting (pid: 862911)
+[2025-04-26 00:16:21 +0000] [862910] [INFO] Shutting down: Master
+[2025-04-26 00:16:22 +0000] [862971] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:16:22 +0000] [862971] [INFO] Listening at: http://0.0.0.0:8443 (862971)
+[2025-04-26 00:16:22 +0000] [862971] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:16:22 +0000] [862972] [INFO] Booting worker with pid: 862972
+[2025-04-26 00:16:23 +0000] [862972] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:16:23 +0000] [862972] [INFO] Worker exiting (pid: 862972)
+[2025-04-26 00:16:24 +0000] [862971] [ERROR] Worker (pid:862972) exited with code 3
+[2025-04-26 00:16:24 +0000] [862971] [ERROR] Shutting down: Master
+[2025-04-26 00:16:24 +0000] [862971] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:16:26 +0000] [862974] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:16:26 +0000] [862974] [INFO] Listening at: http://0.0.0.0:8443 (862974)
+[2025-04-26 00:16:26 +0000] [862974] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:16:26 +0000] [862975] [INFO] Booting worker with pid: 862975
+[2025-04-26 00:16:28 +0000] [862975] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:16:28 +0000] [862975] [INFO] Worker exiting (pid: 862975)
+[2025-04-26 00:16:28 +0000] [862974] [ERROR] Worker (pid:862975) exited with code 3
+[2025-04-26 00:16:28 +0000] [862974] [ERROR] Shutting down: Master
+[2025-04-26 00:16:28 +0000] [862974] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:16:32 +0000] [862977] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:16:32 +0000] [862977] [INFO] Listening at: http://0.0.0.0:8443 (862977)
+[2025-04-26 00:16:32 +0000] [862977] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:16:32 +0000] [862978] [INFO] Booting worker with pid: 862978
+[2025-04-26 00:16:33 +0000] [862978] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:16:33 +0000] [862978] [INFO] Worker exiting (pid: 862978)
+[2025-04-26 00:16:34 +0000] [862977] [ERROR] Worker (pid:862978) exited with code 3
+[2025-04-26 00:16:34 +0000] [862977] [ERROR] Shutting down: Master
+[2025-04-26 00:16:34 +0000] [862977] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:16:38 +0000] [862980] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:16:38 +0000] [862980] [INFO] Listening at: http://0.0.0.0:8443 (862980)
+[2025-04-26 00:16:38 +0000] [862980] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:16:38 +0000] [862981] [INFO] Booting worker with pid: 862981
+[2025-04-26 00:16:39 +0000] [862981] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:16:39 +0000] [862981] [INFO] Worker exiting (pid: 862981)
+[2025-04-26 00:16:40 +0000] [862980] [ERROR] Worker (pid:862981) exited with code 3
+[2025-04-26 00:16:40 +0000] [862980] [ERROR] Shutting down: Master
+[2025-04-26 00:16:40 +0000] [862980] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:19:02 +0000] [863037] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:19:02 +0000] [863037] [INFO] Listening at: http://0.0.0.0:8443 (863037)
+[2025-04-26 00:19:02 +0000] [863037] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:19:02 +0000] [863038] [INFO] Booting worker with pid: 863038
+[2025-04-26 00:19:03 +0000] [863038] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:19:03 +0000] [863038] [INFO] Worker exiting (pid: 863038)
+[2025-04-26 00:19:04 +0000] [863037] [ERROR] Worker (pid:863038) exited with code 3
+[2025-04-26 00:19:04 +0000] [863037] [ERROR] Shutting down: Master
+[2025-04-26 00:19:04 +0000] [863037] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:19:06 +0000] [863040] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:19:06 +0000] [863040] [INFO] Listening at: http://0.0.0.0:8443 (863040)
+[2025-04-26 00:19:06 +0000] [863040] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:19:06 +0000] [863041] [INFO] Booting worker with pid: 863041
+[2025-04-26 00:19:07 +0000] [863041] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:19:07 +0000] [863041] [INFO] Worker exiting (pid: 863041)
+[2025-04-26 00:19:08 +0000] [863040] [ERROR] Worker (pid:863041) exited with code 3
+[2025-04-26 00:19:08 +0000] [863040] [ERROR] Shutting down: Master
+[2025-04-26 00:19:08 +0000] [863040] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:19:11 +0000] [863045] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:19:11 +0000] [863045] [INFO] Listening at: http://0.0.0.0:8443 (863045)
+[2025-04-26 00:19:11 +0000] [863045] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:19:11 +0000] [863046] [INFO] Booting worker with pid: 863046
+[2025-04-26 00:19:13 +0000] [863046] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:19:13 +0000] [863046] [INFO] Worker exiting (pid: 863046)
+[2025-04-26 00:19:13 +0000] [863045] [ERROR] Worker (pid:863046) exited with code 3
+[2025-04-26 00:19:13 +0000] [863045] [ERROR] Shutting down: Master
+[2025-04-26 00:19:13 +0000] [863045] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:19:18 +0000] [863050] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:19:18 +0000] [863050] [INFO] Listening at: http://0.0.0.0:8443 (863050)
+[2025-04-26 00:19:18 +0000] [863050] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:19:18 +0000] [863051] [INFO] Booting worker with pid: 863051
+[2025-04-26 00:19:19 +0000] [863051] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 35, in <module>
+    logging.FileHandler('/opt/crypto-arb-bot/logs/bot.log'),
+  File "/usr/lib/python3.10/logging/__init__.py", line 1169, in __init__
+    StreamHandler.__init__(self, self._open())
+  File "/usr/lib/python3.10/logging/__init__.py", line 1201, in _open
+    return open_func(self.baseFilename, self.mode,
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/bot.log'
+[2025-04-26 00:19:19 +0000] [863051] [INFO] Worker exiting (pid: 863051)
+[2025-04-26 00:19:20 +0000] [863050] [ERROR] Worker (pid:863051) exited with code 3
+[2025-04-26 00:19:20 +0000] [863050] [ERROR] Shutting down: Master
+[2025-04-26 00:19:20 +0000] [863050] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:20:43 +0000] [863128] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:20:43 +0000] [863128] [INFO] Listening at: http://0.0.0.0:8443 (863128)
+[2025-04-26 00:20:43 +0000] [863128] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:20:43 +0000] [863129] [INFO] Booting worker with pid: 863129
+[2025-04-26 00:20:43 +0000] [863129] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 22, in <module>
+    from telegram_bot import AbraxasGreenprintBot
+  File "/opt/crypto-arb-bot/telegram_bot.py", line 40, in <module>
+    from database import Database, User, APIKey, BotStatus, Transaction, TokenSelection
+  File "/opt/crypto-arb-bot/database.py", line 18, in <module>
+    load_dotenv()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 356, in load_dotenv
+    return dotenv.set_as_environment_variables()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 92, in set_as_environment_variables
+    if not self.dict():
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 76, in dict
+    self._dict = OrderedDict(resolve_variables(raw_values, override=self.override))
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 238, in resolve_variables
+    for (name, value) in values:
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 83, in parse
+    with self._get_stream() as stream:
+  File "/usr/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 56, in _get_stream
+    with open(self.dotenv_path, encoding=self.encoding) as stream:
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/.env'
+[2025-04-26 00:20:43 +0000] [863129] [INFO] Worker exiting (pid: 863129)
+[2025-04-26 00:20:44 +0000] [863128] [ERROR] Worker (pid:863129) exited with code 3
+[2025-04-26 00:20:44 +0000] [863128] [ERROR] Shutting down: Master
+[2025-04-26 00:20:44 +0000] [863128] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:20:46 +0000] [863130] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:20:46 +0000] [863130] [INFO] Listening at: http://0.0.0.0:8443 (863130)
+[2025-04-26 00:20:46 +0000] [863130] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:20:46 +0000] [863131] [INFO] Booting worker with pid: 863131
+[2025-04-26 00:20:47 +0000] [863131] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 22, in <module>
+    from telegram_bot import AbraxasGreenprintBot
+  File "/opt/crypto-arb-bot/telegram_bot.py", line 40, in <module>
+    from database import Database, User, APIKey, BotStatus, Transaction, TokenSelection
+  File "/opt/crypto-arb-bot/database.py", line 18, in <module>
+    load_dotenv()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 356, in load_dotenv
+    return dotenv.set_as_environment_variables()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 92, in set_as_environment_variables
+    if not self.dict():
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 76, in dict
+    self._dict = OrderedDict(resolve_variables(raw_values, override=self.override))
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 238, in resolve_variables
+    for (name, value) in values:
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 83, in parse
+    with self._get_stream() as stream:
+  File "/usr/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 56, in _get_stream
+    with open(self.dotenv_path, encoding=self.encoding) as stream:
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/.env'
+[2025-04-26 00:20:47 +0000] [863131] [INFO] Worker exiting (pid: 863131)
+[2025-04-26 00:20:47 +0000] [863130] [ERROR] Worker (pid:863131) exited with code 3
+[2025-04-26 00:20:47 +0000] [863130] [ERROR] Shutting down: Master
+[2025-04-26 00:20:47 +0000] [863130] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:20:50 +0000] [863132] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:20:50 +0000] [863132] [INFO] Listening at: http://0.0.0.0:8443 (863132)
+[2025-04-26 00:20:50 +0000] [863132] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:20:50 +0000] [863133] [INFO] Booting worker with pid: 863133
+[2025-04-26 00:20:51 +0000] [863133] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 22, in <module>
+    from telegram_bot import AbraxasGreenprintBot
+  File "/opt/crypto-arb-bot/telegram_bot.py", line 40, in <module>
+    from database import Database, User, APIKey, BotStatus, Transaction, TokenSelection
+  File "/opt/crypto-arb-bot/database.py", line 18, in <module>
+    load_dotenv()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 356, in load_dotenv
+    return dotenv.set_as_environment_variables()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 92, in set_as_environment_variables
+    if not self.dict():
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 76, in dict
+    self._dict = OrderedDict(resolve_variables(raw_values, override=self.override))
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 238, in resolve_variables
+    for (name, value) in values:
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 83, in parse
+    with self._get_stream() as stream:
+  File "/usr/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 56, in _get_stream
+    with open(self.dotenv_path, encoding=self.encoding) as stream:
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/.env'
+[2025-04-26 00:20:51 +0000] [863133] [INFO] Worker exiting (pid: 863133)
+[2025-04-26 00:20:51 +0000] [863132] [ERROR] Worker (pid:863133) exited with code 3
+[2025-04-26 00:20:51 +0000] [863132] [ERROR] Shutting down: Master
+[2025-04-26 00:20:51 +0000] [863132] [ERROR] Reason: Worker failed to boot.
+[2025-04-26 00:20:55 +0000] [863136] [INFO] Starting gunicorn 23.0.0
+[2025-04-26 00:20:56 +0000] [863136] [INFO] Listening at: http://0.0.0.0:8443 (863136)
+[2025-04-26 00:20:56 +0000] [863136] [INFO] Using worker: aiohttp.worker.GunicornWebWorker
+[2025-04-26 00:20:56 +0000] [863137] [INFO] Booting worker with pid: 863137
+[2025-04-26 00:20:56 +0000] [863137] [ERROR] Exception in worker process
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 608, in spawn_worker
+    worker.init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/aiohttp/worker.py", line 57, in init_process
+    super().init_process()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 135, in init_process
+    self.load_wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/workers/base.py", line 147, in load_wsgi
+    self.wsgi = self.app.wsgi()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 66, in wsgi
+    self.callable = self.load()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+    return self.load_wsgiapp()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+    return util.import_app(self.app_uri)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/util.py", line 370, in import_app
+    mod = importlib.import_module(module)
+  File "/usr/lib/python3.10/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/opt/crypto-arb-bot/webhook_server.py", line 22, in <module>
+    from telegram_bot import AbraxasGreenprintBot
+  File "/opt/crypto-arb-bot/telegram_bot.py", line 40, in <module>
+    from database import Database, User, APIKey, BotStatus, Transaction, TokenSelection
+  File "/opt/crypto-arb-bot/database.py", line 18, in <module>
+    load_dotenv()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 356, in load_dotenv
+    return dotenv.set_as_environment_variables()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 92, in set_as_environment_variables
+    if not self.dict():
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 76, in dict
+    self._dict = OrderedDict(resolve_variables(raw_values, override=self.override))
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 238, in resolve_variables
+    for (name, value) in values:
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 83, in parse
+    with self._get_stream() as stream:
+  File "/usr/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/dotenv/main.py", line 56, in _get_stream
+    with open(self.dotenv_path, encoding=self.encoding) as stream:
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/.env'
+[2025-04-26 00:20:56 +0000] [863137] [INFO] Worker exiting (pid: 863137)
+[2025-04-26 00:20:56 +0000] [863136] [ERROR] Worker (pid:863137) exited with code 3
+[2025-04-26 00:20:56 +0000] [863136] [ERROR] Shutting down: Master
+[2025-04-26 00:20:56 +0000] [863136] [ERROR] Reason: Worker failed to boot.

@@ -1,0 +1,9 @@
+2025-03-25 18:39:40,643 - __main__ - WARNING - Firebase not initialized - real-time notifications disabled
+ * Serving Flask app 'webhook_server'
+ * Debug mode: off
+2025-03-25 18:39:40,649 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://138.197.119.176:80
+2025-03-25 18:39:40,649 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-03-25 18:40:54,283 - werkzeug - INFO - 20.12.26.169 - - [25/Mar/2025 18:40:54] "[33mHEAD / HTTP/1.1[0m" 404 -

@@ -1,0 +1,409 @@
+Exception ignored in: <function tail_f_producer.__del__ at 0x7fd194bfe680>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 649, in __del__
+    self._close()
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 675, in _close
+    self.file.close()
+OSError: [Errno 9] Bad file descriptor
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+Exception ignored in: <function tail_f_producer.__del__ at 0x7fd194bfe680>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 649, in __del__
+    self._close()
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 675, in _close
+    self.file.close()
+OSError: [Errno 9] Bad file descriptor
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+Exception ignored in: <function tail_f_producer.__del__ at 0x7fd194bfe680>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 649, in __del__
+    self._close()
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 675, in _close
+    self.file.close()
+OSError: [Errno 9] Bad file descriptor
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+Exception ignored in: <function tail_f_producer.__del__ at 0x7fd194bfe680>
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 649, in __del__
+    self._close()
+  File "/usr/lib/python3/dist-packages/supervisor/http.py", line 675, in _close
+    self.file.close()
+OSError: [Errno 9] Bad file descriptor
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+
+Error: Error: '/opt/crypto-arb-bot/logs/gunicorn_error.log' isn't writable [PermissionError(13, 'Permission denied')]
+
+2025-04-26 00:34:24,465 - telegram_bot - INFO - Setting up message handlers
+2025-04-26 00:34:24,471 - telegram_bot - INFO - Setting up message handlers
+2025-04-26 00:34:24,473 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,480 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,480 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:24,480 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:24,480 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:24,481 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,483 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,483 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:24,483 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:24,483 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:24,483 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,485 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:24,486 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:24,486 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:24,486 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:24,486 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+2025-04-26 00:34:33,315 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,323 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,327 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:33,327 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:33,327 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:33,327 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+2025-04-26 00:34:33,385 - telegram_bot - INFO - Setting up message handlers
+2025-04-26 00:34:33,390 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,392 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,393 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:33,393 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:33,393 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:33,393 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,397 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:34:33,397 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:34:33,398 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:34:33,398 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:34:33,398 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+2025-04-26 00:38:39,169 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,179 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,179 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:38:39,179 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:38:39,180 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:38:39,182 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+2025-04-26 00:38:39,211 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,219 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,219 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:38:39,220 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:38:39,220 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:38:39,220 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+2025-04-26 00:38:39,249 - telegram_bot - INFO - Setting up message handlers
+/opt/crypto-arb-bot/telegram_bot.py:143: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+/opt/crypto-arb-bot/telegram_bot.py:180: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  tokens_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,251 - telegram_bot - INFO - Setting up API key conversation handler
+/opt/crypto-arb-bot/telegram_bot.py:209: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  setkeys_conv_handler = ConversationHandler(
+2025-04-26 00:38:39,252 - telegram_bot - INFO - API key conversation handler entry points: ['CommandHandler[callback=AbraxasGreenprintBot.cmd_setkeys]', 'CallbackQueryHandler[callback=AbraxasGreenprintBot.guide_keys_callback]']
+2025-04-26 00:38:39,252 - telegram_bot - INFO - API key conversation handler states: [4, 5, 6, 7, 8]
+2025-04-26 00:38:39,252 - telegram_bot - INFO - API key conversation handler state handlers: [(4, 1), (5, 1), (6, 1), (7, 1), (8, 1)]
+2025-04-26 00:38:39,252 - webhook_server - WARNING - Firebase not initialized - real-time notifications disabled
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 208, in run
+    self.sleep()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 359, in sleep
+    ready = select.select([self.PIPE[0]], [], [], 1.0)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 228, in run
+    self.halt(reason=inst.reason, exit_status=inst.exit_status)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 208, in run
+    self.sleep()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 359, in sleep
+    ready = select.select([self.PIPE[0]], [], [], 1.0)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 228, in run
+    self.halt(reason=inst.reason, exit_status=inst.exit_status)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 208, in run
+    self.sleep()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 359, in sleep
+    ready = select.select([self.PIPE[0]], [], [], 1.0)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 228, in run
+    self.halt(reason=inst.reason, exit_status=inst.exit_status)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 208, in run
+    self.sleep()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 359, in sleep
+    ready = select.select([self.PIPE[0]], [], [], 1.0)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 228, in run
+    self.halt(reason=inst.reason, exit_status=inst.exit_status)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 208, in run
+    self.sleep()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 359, in sleep
+    ready = select.select([self.PIPE[0]], [], [], 1.0)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 228, in run
+    self.halt(reason=inst.reason, exit_status=inst.exit_status)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 341, in halt
+    self.stop()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 395, in stop
+    time.sleep(0.1)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 241, in handle_chld
+    self.reap_workers()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 529, in reap_workers
+    raise HaltServer(reason, self.WORKER_BOOT_ERROR)
+gunicorn.errors.HaltServer: <HaltServer 'Worker failed to boot.' 3>
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 57, in __init__
+    self.setup(app)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 92, in setup
+    self.log = self.cfg.logger_class(app.cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 193, in __init__
+    self.setup(cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 205, in setup
+    self.logfile = open(cfg.errorlog, 'a+')
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/gunicorn_error.log'
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 57, in __init__
+    self.setup(app)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 92, in setup
+    self.log = self.cfg.logger_class(app.cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 193, in __init__
+    self.setup(cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 205, in setup
+    self.logfile = open(cfg.errorlog, 'a+')
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/gunicorn_error.log'
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 57, in __init__
+    self.setup(app)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 92, in setup
+    self.log = self.cfg.logger_class(app.cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 193, in __init__
+    self.setup(cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 205, in setup
+    self.logfile = open(cfg.errorlog, 'a+')
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/gunicorn_error.log'
+Traceback (most recent call last):
+  File "/opt/crypto-arb-bot/venv/bin/gunicorn", line 8, in <module>
+    sys.exit(run())
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+    WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 235, in run
+    super().run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/app/base.py", line 71, in run
+    Arbiter(self).run()
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 57, in __init__
+    self.setup(app)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/arbiter.py", line 92, in setup
+    self.log = self.cfg.logger_class(app.cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 193, in __init__
+    self.setup(cfg)
+  File "/opt/crypto-arb-bot/venv/lib/python3.10/site-packages/gunicorn/glogging.py", line 205, in setup
+    self.logfile = open(cfg.errorlog, 'a+')
+PermissionError: [Errno 13] Permission denied: '/opt/crypto-arb-bot/logs/gunicorn_error.log'

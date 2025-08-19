@@ -1,0 +1,21 @@
+[0;1;32m●[0m supervisor.service - Supervisor process control system for UNIX
+     Loaded: loaded (/lib/systemd/system/supervisor.service; enabled; vendor preset: enabled)
+     Active: [0;1;32mactive (running)[0m since Tue 2025-03-11 21:53:24 UTC; 1h 22min ago
+       Docs: http://supervisord.org
+   Main PID: 76519 (supervisord)
+      Tasks: 2 (limit: 1102)
+     Memory: 20.2M
+        CPU: 12.831s
+     CGroup: /system.slice/supervisor.service
+             └─76519 /usr/bin/python3 /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
+
+Mar 11 23:15:50 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:50,244 INFO spawned: 'crypto-arb-bot' with pid 77734
+Mar 11 23:15:51 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:51,268 INFO success: crypto-arb-bot entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+Mar 11 23:15:51 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:51,269 INFO exited: crypto-arb-bot (exit status 0; expected)
+Mar 11 23:15:52 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:52,272 INFO spawned: 'crypto-arb-bot' with pid 77735
+Mar 11 23:15:53 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:53,295 INFO success: crypto-arb-bot entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+Mar 11 23:15:53 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:53,297 INFO exited: crypto-arb-bot (exit status 0; expected)
+Mar 11 23:15:54 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:54,300 INFO spawned: 'crypto-arb-bot' with pid 77736
+Mar 11 23:15:55 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:55,324 INFO success: crypto-arb-bot entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+Mar 11 23:15:55 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:55,325 INFO exited: crypto-arb-bot (exit status 0; expected)
+Mar 11 23:15:56 ubuntu-s-1vcpu-1gb-amd-nyc3-01 supervisord[76519]: 2025-03-11 23:15:56,328 INFO spawned: 'crypto-arb-bot' with pid 77737

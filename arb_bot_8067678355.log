@@ -1,0 +1,47 @@
+2025-03-19 19:49:13,795 - INFO - Loaded credentials from config file
+2025-03-19 19:49:13,796 - INFO - Custom max slippage set to 0.05
+2025-03-19 19:49:13,796 - INFO - Custom liquidation threshold set to 0.2
+2025-03-19 19:49:13,797 - INFO - Selected tokens: HPOS
+2025-03-19 19:49:14,110 - INFO - Successfully connected to Kraken API
+2025-03-19 19:49:15,906 - INFO - Successfully initialized Hyperliquid SDK
+2025-03-19 19:49:16,028 - INFO - Kraken USD balance: $71.66
+2025-03-19 19:49:16,029 - INFO - Including selected token: HPOS
+2025-03-19 19:49:16,677 - INFO - HPOS Historical Analysis (Last 480 Samples up to 2025-03-19 19:49:16 EST)
+2025-03-19 19:49:16,678 - INFO - HPOS 60th percentile: 0.0013%
+2025-03-19 19:49:16,678 - INFO - HPOS Number of samples: 480
+2025-03-19 19:49:16,679 - INFO - HPOS Mean rate: 0.0238%
+2025-03-19 19:49:16,679 - INFO - HPOS Max rate: 0.1924%
+2025-03-19 19:49:16,680 - INFO - 
+HPOS Most recent funding rates:
+2025-03-19 19:49:16,680 - INFO - 2025-03-19 19:00:00.012000: 0.0013%
+2025-03-19 19:49:16,680 - INFO - 2025-03-19 18:00:00.160000: 0.0013%
+2025-03-19 19:49:16,680 - INFO - 2025-03-19 17:00:00.029000: 0.0013%
+2025-03-19 19:49:16,681 - INFO - 2025-03-19 16:00:00.039000: 0.0013%
+2025-03-19 19:49:16,681 - INFO - 2025-03-19 15:00:00.035000: 0.0013%
+2025-03-19 19:49:16,682 - INFO - Started WebSocket message processor thread
+2025-03-19 19:49:16,682 - INFO - Starting arbitrage bot...
+2025-03-19 19:49:17,141 - INFO - WebSocket connected
+2025-03-19 19:49:18,143 - INFO - Subscribed to HPOS updates
+2025-03-19 19:49:18,292 - ERROR - Error processing WebSocket message: 'previous_bid'
+2025-03-19 19:49:21,692 - ERROR - Error checking margin levels: 'Exchange' object has no attribute 'status'
+2025-03-19 19:49:44,127 - INFO - Current Time: 2025-03-19 15:49:44 EST
+2025-03-19 19:49:44,127 - INFO - HPOS Current Funding Rate: 0.0013%
+2025-03-19 19:49:44,128 - INFO - HPOS Current minute: 49 (Exit threshold: 45)
+2025-03-19 19:50:14,590 - INFO - Current Time: 2025-03-19 15:50:14 EST
+2025-03-19 19:50:14,591 - INFO - HPOS Current Funding Rate: 0.0013%
+2025-03-19 19:50:14,591 - INFO - HPOS Current minute: 50 (Exit threshold: 45)
+2025-03-19 19:50:23,529 - ERROR - Error checking margin levels: 'Exchange' object has no attribute 'status'
+2025-03-19 19:50:45,167 - INFO - Current Time: 2025-03-19 15:50:45 EST
+2025-03-19 19:50:45,168 - INFO - HPOS Current Funding Rate: 0.0013%
+2025-03-19 19:50:45,168 - INFO - HPOS Current minute: 50 (Exit threshold: 45)
+2025-03-19 19:51:15,501 - INFO - Current Time: 2025-03-19 15:51:15 EST
+2025-03-19 19:51:15,502 - INFO - HPOS Current Funding Rate: 0.0013%
+2025-03-19 19:51:15,502 - INFO - HPOS Current minute: 51 (Exit threshold: 45)
+2025-03-19 19:51:25,359 - ERROR - Error checking margin levels: 'Exchange' object has no attribute 'status'
+2025-03-19 19:51:45,571 - INFO - Current Time: 2025-03-19 15:51:45 EST
+2025-03-19 19:51:45,571 - INFO - HPOS Current Funding Rate: 0.0013%
+2025-03-19 19:51:45,572 - INFO - HPOS Current minute: 51 (Exit threshold: 45)
+2025-03-19 19:51:55,567 - WARNING - WebSocket closed: None - None
+2025-03-19 19:51:55,625 - INFO - Bot shutdown complete
+2025-03-27 19:59:42,580 - INFO - Loaded credentials from config file
+2025-03-27 20:00:57,912 - INFO - Loaded credentials from config file

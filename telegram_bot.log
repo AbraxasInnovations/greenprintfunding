@@ -1,0 +1,28 @@
+/opt/crypto-arb-bot/telegram_bot.py:130: PTBUserWarning: If 'per_message=False', 'CallbackQueryHandler' will not be tracked for every message. Read this FAQ entry to learn more about the per_* settings: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Frequently-Asked-Questions#what-do-the-per_-settings-in-conversationhandler-do.
+  subscribe_conv_handler = ConversationHandler(
+2025-03-25 18:40:43,288 - __main__ - INFO - Starting Abraxas Greenprint Funding Bot
+2025-03-25 18:40:43,547 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getMe "HTTP/1.1 200 OK"
+2025-03-25 18:40:43,630 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/deleteWebhook "HTTP/1.1 200 OK"
+2025-03-25 18:40:43,632 - telegram.ext.Application - INFO - Application started
+2025-03-25 18:40:53,869 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:03,950 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:14,030 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:24,110 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:34,191 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:44,270 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:41:54,349 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:04,452 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:14,532 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:24,613 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:34,693 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:44,775 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:42:54,858 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:04,938 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:15,019 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:25,099 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:35,179 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:45,259 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:43:55,341 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:44:01,999 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8115645836:AAH3x6uKzP4TXIggb86kh8PMWKKtPzNjpHo/getUpdates "HTTP/1.1 200 OK"
+2025-03-25 18:44:01,999 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-03-25 18:44:02,000 - telegram.ext.Application - INFO - Application.stop() complete
